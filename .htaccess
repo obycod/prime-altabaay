@@ -1,13 +1,1 @@
-# 1. منع تصفح المجلدات (Directory Listing)
-Options -Indexes
-
-# 2. حماية الملفات الحساسة من القراءة أو الوصول المباشر
-<FilesMatch "^(db\.php|\.htaccess|\.git.*)$">
-    Require all denied
-</FilesMatch>
-
-# 3. حماية ضد بعض هجمات الحقن (XSS)
-<IfModule mod_headers.c>
-    Header set X-XSS-Protection "1; mode=block"
-    Header set X-Content-Type-Options "nosniff"
-</IfModule>
+Require all denied

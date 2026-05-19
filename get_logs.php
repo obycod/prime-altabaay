@@ -9,6 +9,18 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
+// تسجيل الخروج التلقائي (Session Timeout)
+if (isset($_SESSION['last_activity']) && time() - $_SESSION['last_activity'] > 1800) {
+    session_unset();
+    session_destroy();
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'انتهت الجلسة بسبب الخمول. يرجى تسجيل الدخول مجدداً.']);
+    exit;
+}
+$_SESSION['last_activity'] = time();
+
+require 'rate_limit.php';
+
 require 'db.php';
 
 try {

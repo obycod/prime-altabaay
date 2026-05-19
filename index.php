@@ -112,6 +112,17 @@ if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin') {
     }
 }
 
+// 4.5 تسجيل الخروج التلقائي عند الخمول (Session Timeout)
+if (isset($_SESSION['user_id'])) {
+    if (isset($_SESSION['last_activity']) && time() - $_SESSION['last_activity'] > 1800) {
+        session_unset();
+        session_destroy();
+        header("Location: index.php");
+        exit;
+    }
+    $_SESSION['last_activity'] = time();
+}
+
 // 5. شاشة القفل وتسجيل الدخول
 if (!isset($_SESSION['user_id'])) {
 ?>
