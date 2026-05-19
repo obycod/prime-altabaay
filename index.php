@@ -1,6 +1,22 @@
 <?php
+// تأمين الجلسات ضد الاختراق (HttpOnly & Strict)
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_samesite', 'Strict');
+
 session_start();
 require 'db.php';
+
+// تجديد المعرف (ID) لمنع اختطاف الجلسة
+if (!isset($_SESSION['initiated'])) {
+    session_regenerate_id(true);
+    $_SESSION['initiated'] = true;
+}
+
+// توليد مفتاح أمان CSRF Token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 // 1. توليد جدول المستخدمين أوتوماتيكياً وحساب المدير الافتراضي
 $pdo->query("CREATE TABLE IF NOT EXISTS users (
@@ -26,6 +42,12 @@ if (isset($_GET['logout'])) {
 // 3. معالجة تسجيل الدخول
 $login_error = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_btn'])) {
+    
+    // التحقق من مفتاح الأمان (CSRF)
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        die("خطأ أمني: طلب غير صالح.");
+    }
+
     $username = trim($_POST['username']);
     $password = $_POST['password'];
     $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
@@ -83,6 +105,7 @@ if (!isset($_SESSION['user_id'])) {
             <div class="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-sm font-bold text-center border border-red-200"><?php echo $login_error; ?></div>
         <?php endif; ?>
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
             <div class="mb-5">
                 <label class="block text-slate-700 font-bold mb-2">اسم المستخدم</label>
                 <input type="text" name="username" required class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none" autocomplete="off" dir="ltr" style="text-align:right">
