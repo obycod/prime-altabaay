@@ -1237,41 +1237,54 @@ function renderOrdersTable() {
     tbody.innerHTML = html;
 }
 
-function printSelectedOrders() {
-    const selected = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
-    if(selected.length === 0) return;
-    
+function getSelectedOrders() {
+    const checkboxes = document.querySelectorAll('.order-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function changeOrderStatus(newStatus, successMessage) {
+    const selectedIds = getSelectedOrders();
+    if (selectedIds.length === 0) {
+        Swal.fire({icon: 'warning', title: 'تنبيه', text: 'يرجى تحديد طلب واحد على الأقل!'});
+        return;
+    }
+
     Swal.fire({
-        title: 'طباعة البوليصات',
-        text: `سيتم طباعة بوليصات لـ ${selected.length} طلب/طلبات وتحويلها إلى (جاهز للبيك أب).`,
-        icon: 'info',
+        title: 'هل أنت متأكد؟',
+        text: 'سيتم تغيير حالة الطلبات المحددة ونقلها للمرحلة التالية.',
+        icon: 'question',
         showCancelButton: true,
-        confirmButtonText: 'طباعة 🖨️',
+        confirmButtonText: 'نعم، تأكيد',
         cancelButtonText: 'إلغاء'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('نجاح', 'تم تجهيز البوليصات للطباعة! (سيتم برمجة نافذة الطباعة قريباً)', 'success');
+            fetch('update_order_status.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ids: selectedIds, status: newStatus })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({icon: 'success', title: 'تم!', text: successMessage, timer: 2000, showConfirmButton: false});
+                    fetchOrdersFromServer(); // تحديث الجدول تلقائياً
+                    const selectAll = document.getElementById('selectAllOrders');
+                    if(selectAll) selectAll.checked = false;
+                } else {
+                    Swal.fire({icon: 'error', title: 'خطأ', text: data.error});
+                }
+            });
         }
     });
 }
 
+function printSelectedOrders() {
+    // سيتم إضافة كود سحب البوليصة من Prime هنا لاحقاً
+    changeOrderStatus('ready_for_pickup', 'تم تحويل الطلبات إلى: جاهز للبيك أب!');
+}
+
 function markAsPickedUp() {
-    const selected = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
-    if(selected.length === 0) return;
-    
-    Swal.fire({
-        title: 'تأكيد التسليم',
-        text: `هل أنت متأكد من تسليم ${selected.length} طلب/طلبات لشركة التوصيل؟`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'نعم، تم التسليم ✅',
-        cancelButtonText: 'إلغاء',
-        confirmButtonColor: '#059669'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire('نجاح', 'تم تسجيل الطلبات كمسلمة للمندوب! (سيتم برمجة التحديث قريباً)', 'success');
-        }
-    });
+    changeOrderStatus('shipped', 'تم تسليم الطلبات للمندوب بنجاح!');
 }
 
 function deleteOrder(id) {
