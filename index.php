@@ -45,6 +45,10 @@ try {
     $pdo->query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS local_status ENUM('pending_print', 'ready_for_pickup', 'shipped') DEFAULT 'pending_print'");
 } catch(Exception $e) {}
 
+// جداول المزامنة المحلية مع Prime
+$pdo->query("CREATE TABLE IF NOT EXISTS prime_states (id INT AUTO_INCREMENT PRIMARY KEY, state_code VARCHAR(10) UNIQUE, state_name VARCHAR(100)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+$pdo->query("CREATE TABLE IF NOT EXISTS prime_statuses (id INT AUTO_INCREMENT PRIMARY KEY, status_code VARCHAR(50) UNIQUE, status_name VARCHAR(100)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
 // 2. تسجيل الخروج
 if (isset($_GET['logout'])) {
     session_destroy();
@@ -275,6 +279,10 @@ $username = $_SESSION['username'];
             <button onclick="switchTab('logs-tab', this); fetchLogsFromServer();" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                 سجل المراقبة 👁️
+            </button>
+            <button onclick="syncPrimeData()" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition mt-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                مزامنة بيانات Prime 🔄
             </button>
             <?php endif; ?>
         </nav>
@@ -1570,6 +1578,30 @@ function loadHomeDashboard() {
         document.getElementById('dash-action-needed').innerText = '5';
         document.getElementById('dash-followup').innerText = '8';
     }
+}
+
+// === مزامنة بيانات Prime ===
+function syncPrimeData() {
+    Swal.fire({
+        title: 'جاري المزامنة...',
+        text: 'يرجى الانتظار، يتم الآن سحب المحافظات والحالات من سيرفرات Prime.',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    fetch('sync_prime_data.php')
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            Swal.fire({icon: 'success', title: 'تمت المزامنة بنجاح', text: data.message});
+        } else {
+            Swal.fire({icon: 'error', title: 'خطأ في المزامنة', text: data.error || 'حدث خطأ غير معروف.'});
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        Swal.fire({icon: 'error', title: 'خطأ في الاتصال', text: 'تعذر الاتصال بملف المزامنة، تأكد من الاتصال بالإنترنت.'});
+    });
 }
 </script>
 </body>
