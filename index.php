@@ -191,6 +191,7 @@ $username = $_SESSION['username'];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prime & Altabaay - ERP System</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -322,7 +323,7 @@ $username = $_SESSION['username'];
                     <div class="mt-8 pt-6 border-t border-slate-100">
                         <button id="submitBtn" onclick="processOrder()" class="w-full flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-xl shadow-md transition text-lg">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            إرسال الطلب وحفظ ملف الإكسل
+                            إرسال الطلب
                         </button>
                     </div>
                 </div>
@@ -475,7 +476,7 @@ $username = $_SESSION['username'];
                                     <td class="px-4 py-3 text-center">
                                         <?php if($u['role'] != 'admin'): ?>
                                         <button onclick="openEditUserModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars($u['username'], ENT_QUOTES); ?>', '<?php echo $u['role']; ?>')" class="text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded ml-1 transition">تعديل ✏️</button>
-                                        <a href="?del_user=<?php echo $u['id']; ?>" onclick="return confirm('حذف الموظف؟')" class="text-red-500 hover:text-red-700 font-bold bg-red-50 hover:bg-red-100 px-3 py-1 rounded transition">حذف 🗑️</a>
+                                        <a href="?del_user=<?php echo $u['id']; ?>" onclick="confirmUserDeletion(event, this.href)" class="text-red-500 hover:text-red-700 font-bold bg-red-50 hover:bg-red-100 px-3 py-1 rounded transition">حذف 🗑️</a>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -498,6 +499,20 @@ $username = $_SESSION['username'];
                         <button onclick="fetchLogsFromServer()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-4 rounded-lg transition text-sm">🔄 تحديث</button>
                     </div>
                     
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div>
+                            <select id="log-user-filter" onchange="renderLogsTable()" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white">
+                                <option value="">كل الموظفين</option>
+                            </select>
+                        </div>
+                        <div>
+                            <input type="text" id="log-action-filter" oninput="renderLogsTable()" placeholder="بحث في تفاصيل الحركة..." class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        </div>
+                        <div>
+                            <input type="date" id="log-date-filter" onchange="renderLogsTable()" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-700">
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto rounded-xl border border-slate-200">
                         <table class="min-w-full divide-y divide-slate-200 text-sm text-right">
                             <thead class="bg-slate-100">
@@ -641,6 +656,7 @@ $username = $_SESSION['username'];
 const USER_ROLE = '<?php echo $role; ?>';
 let currentClientsList = [];
 let currentOrdersList = [];
+let currentLogsList = [];
 
 // === التنسيق المحاسبي ===
 function formatNumStr(num) {
@@ -707,6 +723,23 @@ function toggleSidebar(e) {
         sidebar.classList.add('hidden');
         sidebar.classList.remove('flex');
     }
+}
+
+// === تأكيد حذف موظف ===
+function confirmUserDeletion(e, url) {
+    e.preventDefault();
+    Swal.fire({
+        title: 'هل أنت متأكد؟',
+        text: 'سيتم حذف هذا الموظف نهائياً!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'نعم، احذف',
+        cancelButtonText: 'إلغاء'
+    }).then((result) => {
+        if (result.isConfirmed) { window.location.href = url; }
+    });
 }
 
 // === البحث الذكي ===
@@ -833,7 +866,13 @@ function saveClientEdit() {
     };
     fetch('update_client.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
     .then(res => res.json()).then(res => {
-        if(res.success) { closeModal('editModal'); fetchClientsFromServer(); } else { alert('خطأ: ' + res.error); }
+        if(res.success) { 
+            closeModal('editModal'); 
+            fetchClientsFromServer(); 
+            Swal.fire({icon: 'success', title: 'نجاح', text: 'تم تعديل بيانات المكتب بنجاح!', timer: 2000, showConfirmButton: false});
+        } else { 
+            Swal.fire({icon: 'error', title: 'خطأ', text: res.error}); 
+        }
     }).finally(() => { btn.innerHTML = 'حفظ التعديلات'; btn.disabled = false; });
 }
 
@@ -851,7 +890,7 @@ function processOrder() {
     };
 
     if (!orderData.clientName || !orderData.cartonCount || !orderData.phoneNumber || !orderData.provinceName || orderData.amount === "" || !orderData.address) {
-        alert("⚠️ يرجى ملء كافة الحقول الإجبارية المميزة بنجمة حمراء."); return;
+        Swal.fire({icon: 'warning', title: 'تنبيه', text: 'يرجى ملء كافة الحقول الإجبارية المميزة بنجمة حمراء.'}); return;
     }
 
     const btn = document.getElementById('submitBtn');
@@ -860,11 +899,11 @@ function processOrder() {
     fetch('submit_order.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData) })
     .then(res => res.json()).then(data => {
         if(data.success) { 
-            generateExcelFile(orderData); 
-            resetForm(); // تصفير الفورمة بعد الحفظ بنجاح
+            resetForm(); 
+            Swal.fire({icon: 'success', title: 'نجاح', text: 'تمت العملية بنجاح!', timer: 2000, showConfirmButton: false});
         } 
-        else { alert("خطأ: " + data.error); }
-    }).finally(() => { btn.innerHTML = 'إرسال الطلب وحفظ ملف الإكسل'; btn.disabled = false; });
+        else { Swal.fire({icon: 'error', title: 'خطأ', text: data.error}); }
+    }).finally(() => { btn.innerHTML = 'إرسال الطلب'; btn.disabled = false; });
 }
 
 function generateExcelFile(o) {
@@ -922,17 +961,28 @@ function renderOrdersTable() {
 }
 
 function deleteOrder(id) {
-    if(confirm('هل أنت متأكد من حذف هذا الطلب نهائياً؟')) {
-        fetch('delete_order.php', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: id}) })
-        .then(res => res.json()).then(data => {
-            if(data.success) fetchOrdersFromServer();
-            else alert('خطأ في الحذف: ' + data.error);
-        });
-    }
+    Swal.fire({
+        title: 'هل أنت متأكد؟',
+        text: 'لن تتمكن من استرجاع هذا الطلب!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'نعم، احذف',
+        cancelButtonText: 'إلغاء'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('delete_order.php', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: id}) })
+            .then(res => res.json()).then(data => {
+                if(data.success) { fetchOrdersFromServer(); Swal.fire({icon: 'success', title: 'تم الحذف', text: 'تم حذف الطلب بنجاح.', timer: 2000, showConfirmButton: false}); }
+                else Swal.fire({icon: 'error', title: 'خطأ', text: data.error});
+            });
+        }
+    });
 }
 
 function exportOrdersToExcel() {
-    if(!currentOrdersList || currentOrdersList.length === 0) { alert('لا يوجد سجل طلبات لتصديره'); return; }
+    if(!currentOrdersList || currentOrdersList.length === 0) { Swal.fire({icon: 'warning', title: 'تنبيه', text: 'لا يوجد سجل طلبات لتصديره'}); return; }
     const rows = [["رقم الطلب", "المكتب", "الكراتين", "المبلغ", "تاريخ الطلب"]];
     currentOrdersList.forEach(o => rows.push([o.id, o.client_name, o.carton_count, formatNumStr(o.amount), o.created_at]));
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "الطلبات");
@@ -957,9 +1007,9 @@ function handleExcelImport(event) {
             if (importedList.length > 0) {
                 btn.innerHTML = '⏳ جاري الرفع...';
                 fetch('save_clients.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(importedList) })
-                .then(res => res.json()).then(res => { if(res.success) { alert('✅ تم استيراد المكاتب بنجاح!'); fetchClientsFromServer(); } else alert('❌ خطأ'); }).finally(() => btn.innerHTML = original);
+                .then(res => res.json()).then(res => { if(res.success) { Swal.fire({icon: 'success', title: 'نجاح', text: 'تم استيراد المكاتب بنجاح!', timer: 2000, showConfirmButton: false}); fetchClientsFromServer(); } else Swal.fire({icon: 'error', title: 'خطأ', text: 'حدث خطأ أثناء الاستيراد'}); }).finally(() => btn.innerHTML = original);
             }
-        } catch (error) { alert('❌ خطأ في الملف.'); btn.innerHTML = original; }
+        } catch (error) { Swal.fire({icon: 'error', title: 'خطأ', text: 'خطأ في الملف.'}); btn.innerHTML = original; }
         event.target.value = '';
     };
     reader.readAsArrayBuffer(file);
@@ -1042,20 +1092,49 @@ function openEditUserModal(id, username, role) {
 
 function fetchLogsFromServer() {
     fetch('get_logs.php').then(res => res.json()).then(data => {
-        const tbody = document.getElementById('logsPreviewContainer');
-        if(!tbody) return;
-        if(!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-slate-500">لا توجد حركات مسجلة.</td></tr>`; return; }
-        
-        let html = '';
-        data.forEach(log => {
-            html += `<tr class="hover:bg-slate-50">
-                        <td class="px-4 py-3 text-slate-500 text-xs font-mono" dir="ltr">${log.created_at}</td>
-                        <td class="px-4 py-3 font-bold text-indigo-700">${log.username}</td>
-                        <td class="px-4 py-3 text-slate-700">${log.action_details}</td>
-                     </tr>`;
-        });
-        tbody.innerHTML = html;
+        currentLogsList = data;
+        populateLogFilters();
+        renderLogsTable();
     }).catch(err => console.error(err));
+}
+
+function populateLogFilters() {
+    let users = new Set();
+    currentLogsList.forEach(log => { if(log.username) users.add(log.username); });
+    const userFilter = document.getElementById('log-user-filter');
+    if(userFilter) {
+        userFilter.innerHTML = '<option value="">كل الموظفين</option>';
+        users.forEach(u => userFilter.innerHTML += `<option value="${u}">${u}</option>`);
+    }
+}
+
+function renderLogsTable() {
+    const tbody = document.getElementById('logsPreviewContainer');
+    if(!tbody) return;
+    if(!currentLogsList || currentLogsList.length === 0) { tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-slate-500">لا توجد حركات مسجلة.</td></tr>`; return; }
+    
+    const userQ = document.getElementById('log-user-filter').value;
+    const actionQ = document.getElementById('log-action-filter').value.toLowerCase();
+    const dateQ = document.getElementById('log-date-filter').value;
+
+    let filtered = currentLogsList.filter(log => {
+        const matchUser = userQ ? log.username === userQ : true;
+        const matchAction = actionQ ? (log.action_details && log.action_details.toLowerCase().includes(actionQ)) : true;
+        const matchDate = dateQ ? log.created_at.startsWith(dateQ) : true;
+        return matchUser && matchAction && matchDate;
+    });
+
+    if (filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-slate-500">لا توجد نتائج مطابقة للفلاتر.</td></tr>`; return; }
+        
+    let html = '';
+    filtered.forEach(log => {
+        html += `<tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 text-slate-500 text-xs font-mono" dir="ltr">${log.created_at}</td>
+                    <td class="px-4 py-3 font-bold text-indigo-700">${log.username}</td>
+                    <td class="px-4 py-3 text-slate-700">${log.action_details}</td>
+                 </tr>`;
+    });
+    tbody.innerHTML = html;
 }
 </script>
 </body>
