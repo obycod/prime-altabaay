@@ -234,7 +234,6 @@ $username = $_SESSION['username'];
             </button>
 
             <?php if($role == 'admin' || $role == 'entry'): ?>
-            <button onclick="switchTab('shipping-tab', this)" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-indigo-600 text-white font-bold transition">
             <button id="btn-shipping" onclick="switchTab('shipping-tab', this)" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                 طلب توصيل جديد
@@ -388,7 +387,6 @@ $username = $_SESSION['username'];
             </div>
 
             <?php if($role == 'admin' || $role == 'entry'): ?>
-            <div id="shipping-tab" class="tab-content block animate-fade-in max-w-5xl mx-auto">
             <div id="shipping-tab" class="tab-content hidden animate-fade-in max-w-5xl mx-auto">
                 <div class="glass-panel rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
                     <h2 class="text-lg font-bold text-slate-800 mb-6 pb-4 border-b border-slate-100 flex items-center gap-2">
