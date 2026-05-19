@@ -1287,8 +1287,53 @@ function changeOrderStatus(newStatus, successMessage) {
 }
 
 function printSelectedOrders() {
-    // سيتم إضافة كود سحب البوليصة من Prime هنا لاحقاً
-    changeOrderStatus('ready_for_pickup', 'تم تحويل الطلبات إلى: جاهز للبيك أب!');
+    const selectedIds = getSelectedOrders();
+    if (selectedIds.length === 0) {
+        Swal.fire({icon: 'warning', title: 'تنبيه', text: 'يرجى تحديد طلب واحد على الأقل للطباعة!'});
+        return;
+    }
+
+    Swal.fire({
+        title: 'جاري السحب من Prime...',
+        text: 'يرجى الانتظار، جاري توليد بوليصات الشحن (Waybills)...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    // 1. استدعاء ملف الـ API للطباعة
+    fetch('print_prime_waybills.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ ids: selectedIds })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success && data.pdf_url) {
+            // 2. فتح الـ PDF في نافذة جديدة للطباعة المباشرة
+            window.open(data.pdf_url, '_blank');
+
+            // 3. تحديث حالة الطلبات محلياً إلى "جاهز للبيك أب"
+            fetch('update_order_status.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ids: selectedIds, status: 'ready_for_pickup' })
+            })
+            .then(res => res.json())
+            .then(statusData => {
+                if (statusData.success) {
+                    Swal.fire({icon: 'success', title: 'تمت الطباعة!', text: 'تم تجهيز البوليصات وتحديث حالة الطلبات إلى: جاهز للبيك أب.', timer: 3000, showConfirmButton: false});
+                    fetchOrdersFromServer(); // تحديث الجدول وإخفاء الطلبات من التبويب الحالي
+                    const selectAll = document.getElementById('selectAllOrders');
+                    if(selectAll) selectAll.checked = false;
+                }
+            });
+        } else {
+            Swal.fire({icon: 'error', title: 'فشل الطباعة', text: data.error || 'حدث خطأ غير معروف.'});
+        }
+    })
+    .catch(err => {
+        Swal.fire({icon: 'error', title: 'خطأ بالشبكة', text: 'يرجى التحقق من الاتصال بالإنترنت.'});
+    });
 }
 
 function markAsPickedUp() {

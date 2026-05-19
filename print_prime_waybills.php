@@ -1,0 +1,57 @@
+<?php
+session_start();
+require 'db.php';
+
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['success' => false, 'error' => 'غير مصرح']);
+    exit;
+}
+
+$data = json_decode(file_get_contents("php://input"), true);
+if (isset($data['ids']) && is_array($data['ids'])) {
+    $ids = implode(',', array_map('intval', $data['ids']));
+
+    // جلب أرقام التتبع (Prime Case IDs) من الطلبات المحددة
+    // ملاحظة: يجب أن يحتوي حقل tracking_no على الـ ID الرقمي الراجع من Prime
+    $stmt = $pdo->query("SELECT tracking_no FROM orders WHERE id IN ($ids) AND tracking_no IS NOT NULL AND tracking_no != ''");
+    $prime_ids = [];
+    while ($row = $stmt->fetch()) {
+        $prime_ids[] = (int)$row['tracking_no'];
+    }
+
+    if(empty($prime_ids)){
+        echo json_encode(['success' => false, 'error' => 'الطلبات المحددة لا تحتوي على أرقام تتبع من Prime. يجب إرسالها أولاً.']);
+        exit;
+    }
+
+    // إعدادات API شركة Prime (تُحدث لاحقاً عند استلام البيانات)
+    $prime_token = "YOUR_TOKEN_HERE";
+    $merchant_login_id = "YOUR_MERCHANT_ID_HERE"; // مثال: 0784555544ABCSS
+    $document_size = "A6"; // حجم الطباعة (A6 للطابعات الحرارية واللواصق)
+
+    $api_url = "https://devtest.prime-iq.com/myp/webapi/external/print-shipments/$merchant_login_id/$document_size";
+
+    $ch = curl_init($api_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($prime_ids)); // إرسال مصفوفة الأرقام
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "Content-Type: application/json",
+        "Accept: */*",
+        "Authorization: Bearer " . $prime_token
+    ]);
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    // التحقق من الاستجابة (Prime ترجع رابط URL كـ String)
+    if ($http_code == 200 && !empty($response)) {
+        echo json_encode(['success' => true, 'pdf_url' => trim($response, '"')]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'فشل استخراج البوليصة من Prime.', 'details' => $response]);
+    }
+} else {
+    echo json_encode(['success' => false, 'error' => 'بيانات مفقودة']);
+}
+?>
