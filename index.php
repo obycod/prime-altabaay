@@ -234,6 +234,7 @@ $username = $_SESSION['username'];
             </button>
 
             <?php if($role == 'admin' || $role == 'entry'): ?>
+            <button onclick="switchTab('shipping-tab', this)" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-indigo-600 text-white font-bold transition">
             <button id="btn-shipping" onclick="switchTab('shipping-tab', this)" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                 طلب توصيل جديد
@@ -387,6 +388,7 @@ $username = $_SESSION['username'];
             </div>
 
             <?php if($role == 'admin' || $role == 'entry'): ?>
+            <div id="shipping-tab" class="tab-content block animate-fade-in max-w-5xl mx-auto">
             <div id="shipping-tab" class="tab-content hidden animate-fade-in max-w-5xl mx-auto">
                 <div class="glass-panel rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
                     <h2 class="text-lg font-bold text-slate-800 mb-6 pb-4 border-b border-slate-100 flex items-center gap-2">
@@ -1344,134 +1346,6 @@ function renderLogsTable() {
 
     let filtered = currentLogsList.filter(log => {
         const matchUser = userQ ? log.username === userQ : true;
-        const matchAction = actionQ ? (log.action_details && log.action_details.toLowerCase().includes(actionQ)) : true;
-        const matchDate = dateQ ? log.created_at.startsWith(dateQ) : true;
-        return matchUser && matchAction && matchDate;
-    });
-
-    if (filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-slate-500">لا توجد نتائج مطابقة للفلاتر.</td></tr>`; return; }
-        
-    let html = '';
-    filtered.forEach(log => {
-        html += `<tr class="hover:bg-slate-50">
-                    <td class="px-4 py-3 text-slate-500 text-xs font-mono" dir="ltr">${log.created_at}</td>
-                    <td class="px-4 py-3 font-bold text-indigo-700">${log.username}</td>
-                    <td class="px-4 py-3 text-slate-700">${log.action_details}</td>
-                 </tr>`;
-    });
-    tbody.innerHTML = html;
-}
-
-// === كشف الحسابات والخصومات ===
-function fetchFinancialReport() {
-    fetch('get_discount_report.php').then(res => res.json()).then(data => {
-        if(data.error) return console.error(data.error);
-        currentFinancialsList = data;
-        renderFinancialsTable();
-    }).catch(err => console.error(err));
-}
-
-function renderFinancialsTable() {
-    const tbody = document.getElementById('financialsContainer');
-    if(!tbody) return;
-    
-    const query = document.getElementById('financial-search').value.toLowerCase();
-    let filtered = currentFinancialsList;
-    if(query) {
-        filtered = currentFinancialsList.filter(item => Object.values(item).join(' ').toLowerCase().includes(query));
-    }
-
-    let totalSales = 0, totalDiscounts = 0, totalNet = 0;
-    let html = '';
-    
-    if(filtered.length === 0) {
-        html = `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">لا توجد بيانات مطابقة.</td></tr>`;
-    } else {
-        filtered.forEach(item => {
-            const keys = Object.keys(item);
-            // استخراج القيم بمرونة سواء كانت مسميات الأعمدة عربي أو إنجليزي
-            const name = keys.length > 0 ? item[keys[0]] : '-';
-            const tAmount = keys.length > 1 ? parseFloat(item[keys[1]]) || 0 : 0;
-            const dPercent = keys.length > 2 ? parseFloat(item[keys[2]]) || 0 : 0;
-            const dValue = keys.length > 3 ? parseFloat(item[keys[3]]) || 0 : 0;
-            const net = keys.length > 4 ? parseFloat(item[keys[4]]) || 0 : 0;
-
-            totalSales += tAmount; totalDiscounts += dValue; totalNet += net;
-            html += `<tr class="hover:bg-slate-50"><td class="px-4 py-3 font-bold text-slate-700">${name}</td><td class="px-4 py-3 text-slate-600 font-bold">${formatNumStr(tAmount)} د.ع</td><td class="px-4 py-3 text-rose-600 font-bold" dir="ltr">%${dPercent}</td><td class="px-4 py-3 text-rose-600 font-bold">${formatNumStr(dValue)} د.ع</td><td class="px-4 py-3 text-emerald-600 font-bold">${formatNumStr(net)} د.ع</td></tr>`;
-        });
-    }
-    
-    tbody.innerHTML = html;
-    document.getElementById('card-total-sales').innerText = formatNumStr(totalSales) + ' د.ع';
-    document.getElementById('card-total-discounts').innerText = formatNumStr(totalDiscounts) + ' د.ع';
-    document.getElementById('card-total-net').innerText = formatNumStr(totalNet) + ' د.ع';
-}
-
-// === تتبع الشحنات (Mock Data مؤقتاً) ===
-function loadTrackingData() {
-    // بيانات وهمية للاختبار لحين ربطها بقاعدة البيانات والـ API
-    const mockData = [
-        { local_id: '1042', tracking_no: 'PRM-883921', client: 'مكتبة الأمل', province: 'بغداد', phone: '07712345678', amount: 150000, status: 'واصلة' },
-        { local_id: '1043', tracking_no: 'PRM-883922', client: 'قرطاسية الطالب', province: 'البصرة', phone: '07811122233', amount: 320000, status: 'قيد التوصيل' },
-        { local_id: '1044', tracking_no: 'PRM-883923', client: 'مكتبة الفجر', province: 'اربيل', phone: '07501234567', amount: 75000, status: 'بانتظار المندوب' },
-        { local_id: '1045', tracking_no: 'PRM-883924', client: 'مكتبة النور', province: 'بابل', phone: '07809998877', amount: 210000, status: 'راجعة' }
-    ];
-
-    let html = '';
-    let counts = { progress: 0, delivered: 0, returned: 0, debt: 0 };
-
-    mockData.forEach(item => {
-        let statusBadge = '';
-        if (item.status === 'واصلة') {
-            statusBadge = '<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">✅ سلمت بنجاح</span>';
-            counts.delivered++;
-        } else if (item.status === 'قيد التوصيل') {
-            statusBadge = '<span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold">🚚 قيد التوصيل</span>';
-            counts.progress++;
-            counts.debt += item.amount;
-        } else if (item.status === 'راجعة') {
-            statusBadge = '<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold">❌ راجعة</span>';
-            counts.returned++;
-        } else {
-            statusBadge = '<span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-bold">⏳ بانتظار المندوب</span>';
-            counts.debt += item.amount;
-        }
-
-        html += `<tr class="hover:bg-slate-50">
-                    <td class="px-4 py-3 font-mono text-slate-500 font-bold">#${item.local_id}</td>
-                    <td class="px-4 py-3 font-mono text-indigo-600 font-bold">${item.tracking_no}</td>
-                    <td class="px-4 py-3 font-bold text-slate-700">${item.client}</td>
-                    <td class="px-4 py-3 text-slate-600">${item.province}</td>
-                    <td class="px-4 py-3 text-slate-600 font-mono text-sm" dir="ltr"><div class="text-right">${item.phone}</div></td>
-                    <td class="px-4 py-3 font-bold text-slate-800">${formatNumStr(item.amount)} د.ع</td>
-                    <td class="px-4 py-3 text-center">${statusBadge}</td>
-                 </tr>`;
-    });
-
-    document.getElementById('trackingContainer').innerHTML = html;
-    document.getElementById('track-card-progress').innerText = counts.progress;
-    document.getElementById('track-card-delivered').innerText = counts.delivered;
-    document.getElementById('track-card-returned').innerText = counts.returned;
-    document.getElementById('track-card-debt').innerText = formatNumStr(counts.debt) + ' د.ع';
-}
-
-// === الرئيسية (Home Dashboard) ===
-function loadHomeDashboard() {
-    // بيانات وهمية تمهيداً لربطها بالـ API الحقيقي
-    if(document.getElementById('dash-wallet-balance')) {
-        document.getElementById('dash-wallet-balance').innerText = '1,422,000';
-        document.getElementById('dash-pickup-count').innerText = '12';
-        document.getElementById('dash-delivered').innerText = '84';
-        document.getElementById('dash-out-for-delivery').innerText = '15';
-        document.getElementById('dash-processing').innerText = '42';
-        document.getElementById('dash-returned').innerText = '3';
-        document.getElementById('dash-action-needed').innerText = '5';
-        document.getElementById('dash-followup').innerText = '8';
-    }
-}
-</script>
-</body>
-</html> const matchUser = userQ ? log.username === userQ : true;
         const matchAction = actionQ ? (log.action_details && log.action_details.toLowerCase().includes(actionQ)) : true;
         const matchDate = dateQ ? log.created_at.startsWith(dateQ) : true;
         return matchUser && matchAction && matchDate;
