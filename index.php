@@ -46,7 +46,11 @@ try {
 } catch(Exception $e) {}
 
 // جداول المزامنة المحلية مع Prime
-$pdo->query("CREATE TABLE IF NOT EXISTS prime_states (id INT AUTO_INCREMENT PRIMARY KEY, state_code VARCHAR(10) UNIQUE, state_name VARCHAR(100)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+$pdo->query("CREATE TABLE IF NOT EXISTS prime_states (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    state_code VARCHAR(10) UNIQUE NOT NULL,
+    state_name VARCHAR(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 $pdo->query("CREATE TABLE IF NOT EXISTS prime_statuses (id INT AUTO_INCREMENT PRIMARY KEY, status_code VARCHAR(50) UNIQUE, status_name VARCHAR(100)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
 // 2. تسجيل الخروج
@@ -283,6 +287,10 @@ $username = $_SESSION['username'];
             <button onclick="syncPrimeData()" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition mt-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                 مزامنة بيانات Prime 🔄
+            </button>
+            <button onclick="syncPrimeStates()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition text-sm w-full justify-center mt-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                مزامنة بيانات المحافظات (Prime)
             </button>
             <?php endif; ?>
         </nav>
@@ -1646,6 +1654,28 @@ function syncPrimeData() {
     .catch(err => {
         console.error(err);
         Swal.fire({icon: 'error', title: 'خطأ في الاتصال', text: 'تعذر الاتصال بملف المزامنة، تأكد من الاتصال بالإنترنت.'});
+    });
+}
+
+function syncPrimeStates() {
+    Swal.fire({
+        title: 'جاري المزامنة...',
+        text: 'يتم الآن سحب بيانات المحافظات من سيرفرات Prime...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+    
+    fetch('sync_prime_states.php')
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            Swal.fire({icon: 'success', title: 'تمت المزامنة!', text: data.message, timer: 3000, showConfirmButton: false});
+        } else {
+            Swal.fire({icon: 'error', title: 'خطأ', text: data.error});
+        }
+    })
+    .catch(err => {
+        Swal.fire({icon: 'error', title: 'خطأ بالشبكة', text: 'يرجى التحقق من الاتصال.'});
     });
 }
 </script>
