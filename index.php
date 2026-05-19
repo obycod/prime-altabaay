@@ -900,7 +900,11 @@ function processOrder() {
     .then(res => res.json()).then(data => {
         if(data.success) { 
             resetForm(); 
-            Swal.fire({icon: 'success', title: 'نجاح', text: 'تمت العملية بنجاح!', timer: 2000, showConfirmButton: false});
+            if (data.tracking_no) {
+                Swal.fire({icon: 'success', title: 'نجاح 🚀', text: 'تم حفظ الطلب وإرساله لشركة برايم بنجاح، رقم التتبع: ' + data.tracking_no, showConfirmButton: true, confirmButtonText: 'حسناً', confirmButtonColor: '#4f46e5'});
+            } else {
+                Swal.fire({icon: 'success', title: 'تم الحفظ محلياً', text: 'تم تسجيل الطلب في النظام المحلي. (يرجى إدخال API Key لتفعيل الإرسال إلى برايم).', timer: 4000, showConfirmButton: false});
+            }
         } 
         else { Swal.fire({icon: 'error', title: 'خطأ', text: data.error}); }
     }).finally(() => { btn.innerHTML = 'إرسال الطلب'; btn.disabled = false; });
