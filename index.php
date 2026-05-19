@@ -318,6 +318,7 @@ $username = $_SESSION['username'];
                                     <th class="px-4 py-3 font-bold text-slate-600">الكراتين</th>
                                     <th class="px-4 py-3 font-bold text-slate-600">المبلغ</th>
                                     <th class="px-4 py-3 font-bold text-slate-600">التاريخ</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600 text-center">إجراءات</th>
                                 </tr>
                             </thead>
                             <tbody id="ordersPreviewContainer" class="divide-y divide-slate-100 bg-white"></tbody>
@@ -686,14 +687,20 @@ function fetchOrdersFromServer() {
         if(!tbody) return;
         if(data.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">لا توجد طلبات مسجلة.</td></tr>`; return; }
         let html = '';
-        data.forEach(o => {
+        data.forEach(order => {
+            const safeOrderData = JSON.stringify(order).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            
             html += `<tr class="hover:bg-slate-50">
-                        <td class="px-4 py-3 font-mono text-slate-500">#${o.id}</td>
-                        <td class="px-4 py-3 font-bold text-slate-700">${o.client_name}</td>
-                        <td class="px-4 py-3 text-slate-600">${o.carton_count} كارتونة</td>
-                        <td class="px-4 py-3 text-indigo-600 font-bold">${formatNumStr(o.amount)} د.ع</td>
-                        <td class="px-4 py-3 text-slate-500 text-xs" dir="ltr">${o.created_at}</td>
-                    </tr>`;
+                        <td class="px-4 py-3 font-mono text-slate-500">#${order.id}</td>
+                        <td class="px-4 py-3 font-bold text-slate-700">${order.client_name}</td>
+                        <td class="px-4 py-3 text-slate-600">${order.carton_count} كارتونة</td>
+                        <td class="px-4 py-3 text-indigo-600 font-bold">${formatNumStr(order.amount)} د.ع</td>
+                        <td class="px-4 py-3 text-slate-500 text-xs" dir="ltr">${order.created_at}</td>
+                        <td class="px-4 py-3 text-center flex justify-center gap-2">
+                            <button onclick="exportSingleOrder('${safeOrderData}')" class="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded text-xs font-bold transition">تصدير</button>
+                            <button onclick="deleteOrder(${order.id})" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1 rounded text-xs font-bold transition">حذف</button>
+                        </td>
+                     </tr>`;
         });
         tbody.innerHTML = html;
     });
@@ -739,6 +746,48 @@ function exportClientsToExcel() {
     currentClientsList.forEach((c, idx) => rows.push([idx + 1, c.client_type||'', c.province, c.name, c.phone, c.address||'', c.phone2||'']));
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "المكاتب");
     XLSX.writeFile(wb, `بيانات_المكاتب.xlsx`);
+}
+
+function exportSingleOrder(orderJson) {
+    const order = JSON.parse(orderJson);
+    
+    // استرجاع الثوابت والملاحظات
+    const notes = `عدد الكراتين الكلي للمكتبة ( ${order.carton_count} )`;
+    const goodsType = "ملازم";
+    const piecesCount = 1;
+    const hasReturn = "Y";
+    const phone2 = ""; // يمكن تركه فارغاً في الاسترجاع
+    const shipmentCode = "";
+    const returnDescription = "";
+
+    // الترويسة المعتمدة
+    const headers = [ "ملاحظات", "عدد القطع\nأجباري", "يحتوي على ارجاع بضاعة؟", "هاتف المستلم\nأجباري 11 خانة", "تفاصيل العنوان\nأجباري", "شفرة المحافظة\nأجباري", "أسم المستلم", "المبلغ عراقي\nكامل بالالاف .\nفي حال عدم توفره سيعتبر 0", "رقم الوصل \nفي حال عدم وجود رقم وصل سيتم توليده من النظام", "كود الشحنة", "هاتف المستلم 2\n", "نوع البضاعة", "وصف البضاعة المسترجعة اوالمستبدلة" ];
+    
+    const finalRows = [headers];
+    
+    // تكرار الأسطر حسب عدد الكراتين المحفوظ بالطلب
+    for (let i = 0; i < order.carton_count; i++) {
+        finalRows.push([
+            notes, 
+            piecesCount, 
+            hasReturn, 
+            order.phone, 
+            order.address, 
+            order.province, 
+            order.client_name, 
+            Number(order.amount), 
+            order.receipt_no || "", 
+            shipmentCode, 
+            phone2, 
+            goodsType, 
+            returnDescription
+        ]);
+    }
+    
+    // توليد وتحميل الملف
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(finalRows), "Sheet1");
+    XLSX.writeFile(wb, `إعادة_تصدير_${order.client_name}_${order.carton_count}_كارتونة.xlsx`);
 }
 </script>
 </body>
