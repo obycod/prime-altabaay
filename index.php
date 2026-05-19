@@ -40,6 +40,11 @@ $pdo->query("CREATE TABLE IF NOT EXISTS activity_logs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
+// تحديث جدول الطلبات لإضافة عمود الحالة المحلية (لو لم يكن موجوداً)
+try {
+    $pdo->query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS local_status ENUM('pending_print', 'ready_for_pickup', 'shipped') DEFAULT 'pending_print'");
+} catch(Exception $e) {}
+
 // 2. تسجيل الخروج
 if (isset($_GET['logout'])) {
     session_destroy();
@@ -527,10 +532,25 @@ $username = $_SESSION['username'];
                         </div>
                     </div>
                     
+                    <!-- تبويبات الحالة الفرعية وشريط الإجراءات الجماعية -->
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                        <div class="flex bg-slate-100 p-1 rounded-lg overflow-x-auto w-full md:w-auto">
+                            <button onclick="filterOrdersByStatus('pending_print')" id="tab-pending_print" class="order-sub-tab px-4 py-2 text-sm font-bold rounded-md bg-white shadow text-indigo-700 transition whitespace-nowrap">بانتظار الطباعة 🖨️</button>
+                            <button onclick="filterOrdersByStatus('ready_for_pickup')" id="tab-ready_for_pickup" class="order-sub-tab px-4 py-2 text-sm font-bold rounded-md text-slate-500 hover:text-slate-700 transition whitespace-nowrap">جاهز للبيك أب 📦</button>
+                            <button onclick="filterOrdersByStatus('shipped')" id="tab-shipped" class="order-sub-tab px-4 py-2 text-sm font-bold rounded-md text-slate-500 hover:text-slate-700 transition whitespace-nowrap">مسلمة للشركة 🚚</button>
+                        </div>
+                        
+                        <div id="bulk-action-bar" class="hidden flex gap-2 animate-fade-in w-full md:w-auto">
+                            <button onclick="printSelectedOrders()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition text-sm flex-1 md:flex-none">طباعة المحددة 🖨️</button>
+                            <button onclick="markAsPickedUp()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition text-sm flex-1 md:flex-none">تسليم للمندوب ✅</button>
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto rounded-xl border border-slate-200">
                         <table class="min-w-full divide-y divide-slate-200 text-sm text-right">
                             <thead class="bg-slate-100">
                                 <tr>
+                                    <th class="px-4 py-3 w-10 text-center"><input type="checkbox" id="selectAllOrders" onchange="toggleAllOrders(this)" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"></th>
                                     <th class="px-4 py-3 font-bold text-slate-600">رقم الطلب</th>
                                     <th class="px-4 py-3 font-bold text-slate-600">المكتب</th>
                                     <th class="px-4 py-3 font-bold text-slate-600">الكراتين</th>
@@ -877,6 +897,7 @@ let currentClientsList = [];
 let currentOrdersList = [];
 let currentLogsList = [];
 let currentFinancialsList = [];
+let currentOrderStatusFilter = 'pending_print';
 
 // === التنسيق المحاسبي ===
 function formatNumStr(num) {
@@ -1153,23 +1174,54 @@ function fetchOrdersFromServer() {
     });
 }
 
+function filterOrdersByStatus(status) {
+    currentOrderStatusFilter = status;
+    document.querySelectorAll('.order-sub-tab').forEach(btn => {
+        btn.classList.remove('bg-white', 'shadow', 'text-indigo-700');
+        btn.classList.add('text-slate-500');
+    });
+    document.getElementById('tab-' + status).classList.add('bg-white', 'shadow', 'text-indigo-700');
+    document.getElementById('tab-' + status).classList.remove('text-slate-500');
+    renderOrdersTable();
+}
+
+function toggleAllOrders(source) {
+    document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = source.checked);
+    handleOrderSelection();
+}
+
+function handleOrderSelection() {
+    const checkedCount = document.querySelectorAll('.order-checkbox:checked').length;
+    const actionBar = document.getElementById('bulk-action-bar');
+    if(checkedCount > 0) actionBar.classList.remove('hidden');
+    else actionBar.classList.add('hidden');
+}
+
 function renderOrdersTable() {
     const tbody = document.getElementById('ordersPreviewContainer');
     if(!tbody) return;
     const filterDate = document.getElementById('order-date-filter').value;
     
     let filtered = currentOrdersList;
+    // فلترة التاريخ
     if(filterDate) {
         filtered = currentOrdersList.filter(o => o.created_at.startsWith(filterDate));
     }
+    // فلترة الحالة المحلية
+    filtered = filtered.filter(o => (o.local_status || 'pending_print') === currentOrderStatusFilter);
     
     if(filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">لا توجد طلبات مطابقة في هذا التاريخ.</td></tr>`; return; }
+    document.getElementById('selectAllOrders').checked = false;
+    document.getElementById('bulk-action-bar').classList.add('hidden');
+
+    if(filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">لا توجد طلبات مطابقة في هذا التبويب.</td></tr>`; return; }
     
     let html = '';
     filtered.forEach(order => {
         const safeOrderData = JSON.stringify(order).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         
         html += `<tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 text-center"><input type="checkbox" value="${order.id}" class="order-checkbox w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer" onchange="handleOrderSelection()"></td>
                     <td class="px-4 py-3 font-mono text-slate-500">#${order.id}</td>
                     <td class="px-4 py-3 font-bold text-slate-700">${order.client_name}</td>
                     <td class="px-4 py-3 text-slate-600">${order.carton_count} كارتونة</td>
@@ -1183,6 +1235,43 @@ function renderOrdersTable() {
                  </tr>`;
     });
     tbody.innerHTML = html;
+}
+
+function printSelectedOrders() {
+    const selected = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
+    if(selected.length === 0) return;
+    
+    Swal.fire({
+        title: 'طباعة البوليصات',
+        text: `سيتم طباعة بوليصات لـ ${selected.length} طلب/طلبات وتحويلها إلى (جاهز للبيك أب).`,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'طباعة 🖨️',
+        cancelButtonText: 'إلغاء'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('نجاح', 'تم تجهيز البوليصات للطباعة! (سيتم برمجة نافذة الطباعة قريباً)', 'success');
+        }
+    });
+}
+
+function markAsPickedUp() {
+    const selected = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
+    if(selected.length === 0) return;
+    
+    Swal.fire({
+        title: 'تأكيد التسليم',
+        text: `هل أنت متأكد من تسليم ${selected.length} طلب/طلبات لشركة التوصيل؟`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'نعم، تم التسليم ✅',
+        cancelButtonText: 'إلغاء',
+        confirmButtonColor: '#059669'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('نجاح', 'تم تسجيل الطلبات كمسلمة للمندوب! (سيتم برمجة التحديث قريباً)', 'success');
+        }
+    });
 }
 
 function deleteOrder(id) {
