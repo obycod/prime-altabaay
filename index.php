@@ -32,6 +32,14 @@ if($stmt->fetchColumn() == 0) {
     $pdo->query("INSERT INTO users (username, password, role) VALUES ('admin', '$hash', 'admin')");
 }
 
+// توليد جدول سجل الحركات أوتوماتيكياً
+$pdo->query("CREATE TABLE IF NOT EXISTS activity_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50),
+    action_details TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
 // 2. تسجيل الخروج
 if (isset($_GET['logout'])) {
     session_destroy();
@@ -202,6 +210,10 @@ $username = $_SESSION['username'];
             <button onclick="switchTab('users-tab', this)" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition border-t border-slate-700 mt-4 pt-6">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 إدارة الموظفين
+            </button>
+            <button onclick="switchTab('logs-tab', this); fetchLogsFromServer();" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                سجل المراقبة 👁️
             </button>
             <?php endif; ?>
         </nav>
@@ -431,6 +443,33 @@ $username = $_SESSION['username'];
             </div>
             <?php endif; ?>
 
+            <?php if($role == 'admin'): ?>
+            <div id="logs-tab" class="tab-content hidden animate-fade-in max-w-7xl mx-auto">
+                <div class="glass-panel rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                    <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            سجل حركات النظام
+                        </h2>
+                        <button onclick="fetchLogsFromServer()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-4 rounded-lg transition text-sm">🔄 تحديث</button>
+                    </div>
+                    
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm text-right">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="px-4 py-3 font-bold text-slate-600 w-48">التاريخ والوقت</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600 w-32">الموظف</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600">تفاصيل الحركة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsPreviewContainer" class="divide-y divide-slate-100 bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
         </div>
     </main>
 
@@ -521,6 +560,7 @@ window.onload = function() {
     resetForm();
     if(USER_ROLE == 'admin' || USER_ROLE == 'entry' || USER_ROLE == 'editor') fetchClientsFromServer();
     if(USER_ROLE == 'admin' || USER_ROLE == 'viewer') fetchOrdersFromServer();
+    if(USER_ROLE == 'admin') fetchLogsFromServer();
     
     // إبقاء تاب اليوزرز مفتوح اذا تمت اضافة مستخدم
     const urlParams = new URLSearchParams(window.location.search);
@@ -832,6 +872,24 @@ function exportSingleOrder(orderJson) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(finalRows), "Sheet1");
     XLSX.writeFile(wb, `إعادة_تصدير_${order.client_name}_${order.carton_count}_كارتونة.xlsx`);
+}
+
+function fetchLogsFromServer() {
+    fetch('get_logs.php').then(res => res.json()).then(data => {
+        const tbody = document.getElementById('logsPreviewContainer');
+        if(!tbody) return;
+        if(!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-slate-500">لا توجد حركات مسجلة.</td></tr>`; return; }
+        
+        let html = '';
+        data.forEach(log => {
+            html += `<tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3 text-slate-500 text-xs font-mono" dir="ltr">${log.created_at}</td>
+                        <td class="px-4 py-3 font-bold text-indigo-700">${log.username}</td>
+                        <td class="px-4 py-3 text-slate-700">${log.action_details}</td>
+                     </tr>`;
+        });
+        tbody.innerHTML = html;
+    }).catch(err => console.error(err));
 }
 </script>
 </body>

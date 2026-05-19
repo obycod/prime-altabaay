@@ -26,6 +26,11 @@ if ($data) {
             htmlspecialchars(strip_tags($data['receiptNo']), ENT_QUOTES, 'UTF-8')
         ]);
         
+        // تسجيل الحركة
+        $action_details = "قام بإصدار طلب توصيل جديد لمكتب: " . strip_tags($data['clientName']);
+        $log_stmt = $pdo->prepare("INSERT INTO activity_logs (username, action_details) VALUES (?, ?)");
+        $log_stmt->execute([$_SESSION['username'], $action_details]);
+        
         echo json_encode(['success' => true, 'order_id' => $pdo->lastInsertId()]);
     } catch(PDOException $e) {
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);

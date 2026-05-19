@@ -16,6 +16,12 @@ if ($data && isset($data['id'])) {
     try {
         $stmt = $pdo->prepare("DELETE FROM orders WHERE id = ?");
         $stmt->execute([$data['id']]);
+
+        // تسجيل الحركة
+        $action_details = "قام بحذف الطلب رقم: #" . $data['id'];
+        $log_stmt = $pdo->prepare("INSERT INTO activity_logs (username, action_details) VALUES (?, ?)");
+        $log_stmt->execute([$_SESSION['username'], $action_details]);
+        
         echo json_encode(['success' => true]);
     } catch(PDOException $e) {
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);

@@ -25,6 +25,11 @@ if ($data && isset($data['id'])) {
             $data['id']
         ]);
         
+        // تسجيل الحركة
+        $action_details = "قام بتعديل بيانات المكتب: " . strip_tags($data['name']);
+        $log_stmt = $pdo->prepare("INSERT INTO activity_logs (username, action_details) VALUES (?, ?)");
+        $log_stmt->execute([$_SESSION['username'], $action_details]);
+        
         echo json_encode(['success' => true, 'message' => 'تم تحديث بيانات المكتب بنجاح']);
     } catch(PDOException $e) {
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
