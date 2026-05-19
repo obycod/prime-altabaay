@@ -258,6 +258,10 @@ $username = $_SESSION['username'];
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 الحسابات والخصومات 💰
             </button>
+            <button onclick="switchTab('tracking-tab', this); loadTrackingData();" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                تتبع الشحنات 🚚
+            </button>
             <button onclick="switchTab('logs-tab', this); fetchLogsFromServer();" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                 سجل المراقبة 👁️
@@ -535,6 +539,58 @@ $username = $_SESSION['username'];
                                 </tr>
                             </thead>
                             <tbody id="financialsContainer" class="divide-y divide-slate-100 bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if($role == 'admin'): ?>
+            <div id="tracking-tab" class="tab-content hidden animate-fade-in max-w-7xl mx-auto">
+                <div class="glass-panel rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                    <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                            لوحة تتبع الشحنات اللوجستية
+                        </h2>
+                        <button onclick="loadTrackingData()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-4 rounded-lg transition text-sm">🔄 تحديث الحالات</button>
+                    </div>
+                    
+                    <!-- البطاقات الإحصائية لتتبع الشحنات -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                        <div class="bg-gradient-to-r from-orange-400 to-orange-500 rounded-xl p-5 text-white shadow-md">
+                            <h3 class="text-orange-50 text-sm font-bold mb-1">قيد التوصيل</h3>
+                            <div class="text-3xl font-extrabold" id="track-card-progress">0</div>
+                        </div>
+                        <div class="bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-xl p-5 text-white shadow-md">
+                            <h3 class="text-emerald-50 text-sm font-bold mb-1">شحنات واصلة</h3>
+                            <div class="text-3xl font-extrabold" id="track-card-delivered">0</div>
+                        </div>
+                        <div class="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-5 text-white shadow-md">
+                            <h3 class="text-red-50 text-sm font-bold mb-1">شحنات راجعة</h3>
+                            <div class="text-3xl font-extrabold" id="track-card-returned">0</div>
+                        </div>
+                        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-5 text-white shadow-md">
+                            <h3 class="text-indigo-50 text-sm font-bold mb-1">مبالغ قيد التحصيل</h3>
+                            <div class="text-3xl font-extrabold" id="track-card-debt">0 د.ع</div>
+                        </div>
+                    </div>
+
+                    <!-- جدول التتبع التفصيلي -->
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm text-right">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="px-4 py-3 font-bold text-slate-600">رقم الطلب محلياً</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600">رقم التتبع (Prime)</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600">المكتب المستلم</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600">المحافظة</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600">الهاتف</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600">مبلغ الوصل</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600 text-center">حالة الشحنة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trackingContainer" class="divide-y divide-slate-100 bg-white"></tbody>
                         </table>
                     </div>
                 </div>
@@ -1238,6 +1294,54 @@ function renderFinancialsTable() {
     document.getElementById('card-total-sales').innerText = formatNumStr(totalSales) + ' د.ع';
     document.getElementById('card-total-discounts').innerText = formatNumStr(totalDiscounts) + ' د.ع';
     document.getElementById('card-total-net').innerText = formatNumStr(totalNet) + ' د.ع';
+}
+
+// === تتبع الشحنات (Mock Data مؤقتاً) ===
+function loadTrackingData() {
+    // بيانات وهمية للاختبار لحين ربطها بقاعدة البيانات والـ API
+    const mockData = [
+        { local_id: '1042', tracking_no: 'PRM-883921', client: 'مكتبة الأمل', province: 'بغداد', phone: '07712345678', amount: 150000, status: 'واصلة' },
+        { local_id: '1043', tracking_no: 'PRM-883922', client: 'قرطاسية الطالب', province: 'البصرة', phone: '07811122233', amount: 320000, status: 'قيد التوصيل' },
+        { local_id: '1044', tracking_no: 'PRM-883923', client: 'مكتبة الفجر', province: 'اربيل', phone: '07501234567', amount: 75000, status: 'بانتظار المندوب' },
+        { local_id: '1045', tracking_no: 'PRM-883924', client: 'مكتبة النور', province: 'بابل', phone: '07809998877', amount: 210000, status: 'راجعة' }
+    ];
+
+    let html = '';
+    let counts = { progress: 0, delivered: 0, returned: 0, debt: 0 };
+
+    mockData.forEach(item => {
+        let statusBadge = '';
+        if (item.status === 'واصلة') {
+            statusBadge = '<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">✅ سلمت بنجاح</span>';
+            counts.delivered++;
+        } else if (item.status === 'قيد التوصيل') {
+            statusBadge = '<span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold">🚚 قيد التوصيل</span>';
+            counts.progress++;
+            counts.debt += item.amount;
+        } else if (item.status === 'راجعة') {
+            statusBadge = '<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold">❌ راجعة</span>';
+            counts.returned++;
+        } else {
+            statusBadge = '<span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-bold">⏳ بانتظار المندوب</span>';
+            counts.debt += item.amount;
+        }
+
+        html += `<tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 font-mono text-slate-500 font-bold">#${item.local_id}</td>
+                    <td class="px-4 py-3 font-mono text-indigo-600 font-bold">${item.tracking_no}</td>
+                    <td class="px-4 py-3 font-bold text-slate-700">${item.client}</td>
+                    <td class="px-4 py-3 text-slate-600">${item.province}</td>
+                    <td class="px-4 py-3 text-slate-600 font-mono text-sm" dir="ltr"><div class="text-right">${item.phone}</div></td>
+                    <td class="px-4 py-3 font-bold text-slate-800">${formatNumStr(item.amount)} د.ع</td>
+                    <td class="px-4 py-3 text-center">${statusBadge}</td>
+                 </tr>`;
+    });
+
+    document.getElementById('trackingContainer').innerHTML = html;
+    document.getElementById('track-card-progress').innerText = counts.progress;
+    document.getElementById('track-card-delivered').innerText = counts.delivered;
+    document.getElementById('track-card-returned').innerText = counts.returned;
+    document.getElementById('track-card-debt').innerText = formatNumStr(counts.debt) + ' د.ع';
 }
 </script>
 </body>
