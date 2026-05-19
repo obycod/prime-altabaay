@@ -104,6 +104,23 @@ if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin') {
             $stmt->execute([$u, $p, $r]);
         } catch(Exception $e) { $login_error = "اسم المستخدم موجود مسبقاً!"; }
     }
+    if (isset($_POST['edit_user_btn'])) {
+        $id = $_POST['edit_user_id'];
+        $u = trim($_POST['edit_username']);
+        $r = $_POST['edit_role'];
+        try {
+            if (!empty($_POST['edit_password'])) {
+                $p = password_hash($_POST['edit_password'], PASSWORD_DEFAULT);
+                $stmt = $pdo->prepare("UPDATE users SET username=?, password=?, role=? WHERE id=?");
+                $stmt->execute([$u, $p, $r, $id]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE users SET username=?, role=? WHERE id=?");
+                $stmt->execute([$u, $r, $id]);
+            }
+            header("Location: index.php?tab=users");
+            exit;
+        } catch(Exception $e) { $login_error = "خطأ: اسم المستخدم موجود مسبقاً!"; }
+    }
     if (isset($_GET['del_user'])) {
         $stmt = $pdo->prepare("DELETE FROM users WHERE id = ? AND role != 'admin'");
         $stmt->execute([$_GET['del_user']]);
@@ -185,10 +202,24 @@ $username = $_SESSION['username'];
         .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="text-slate-800 flex h-screen" onclick="closeDropdown(event)">
+<body class="text-slate-800 flex flex-col md:flex-row h-screen" onclick="closeDropdown(event)">
 
-    <aside class="w-64 bg-slate-900 text-white flex flex-col shadow-2xl z-20 hidden md:flex">
-        <div class="h-16 flex items-center justify-center border-b border-slate-800">
+    <!-- شريط علوي للموبايل -->
+    <div class="md:hidden flex justify-between items-center p-4 bg-slate-900 text-white z-40 border-b border-slate-800">
+        <h1 class="text-xl font-extrabold tracking-wider text-indigo-400">Prime & Altabaay</h1>
+        <button onclick="toggleSidebar(event)" class="text-white focus:outline-none">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+    </div>
+
+    <aside id="sidebar" class="w-64 bg-slate-900 text-white flex-col shadow-2xl z-50 hidden md:flex absolute md:relative h-full right-0 top-0 transition-all">
+        <!-- زر إغلاق القائمة في الموبايل -->
+        <div class="md:hidden flex justify-end p-4 border-b border-slate-800">
+            <button onclick="toggleSidebar(event)" class="text-slate-400 hover:text-white focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="h-16 items-center justify-center border-b border-slate-800 hidden md:flex">
             <h1 class="text-xl font-extrabold tracking-wider text-indigo-400">Prime & Altabaay</h1>
         </div>
         <div class="px-4 py-3 bg-slate-800 text-xs font-bold text-slate-400 border-b border-slate-700 flex justify-between items-center">
@@ -366,7 +397,8 @@ $username = $_SESSION['username'];
                             <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                             سجل الطلبات المصدرة
                         </h2>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap justify-end">
+                            <input type="date" id="order-date-filter" onchange="renderOrdersTable()" class="px-3 py-2 rounded-lg border border-slate-300 outline-none text-sm text-slate-700">
                             <button onclick="exportOrdersToExcel()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition text-sm">
                                 📥 تصدير السجل (Excel)
                             </button>
@@ -442,7 +474,8 @@ $username = $_SESSION['username'];
                                     <td class="px-4 py-3 text-indigo-600 font-bold"><?php echo strtoupper($u['role']); ?></td>
                                     <td class="px-4 py-3 text-center">
                                         <?php if($u['role'] != 'admin'): ?>
-                                        <a href="?del_user=<?php echo $u['id']; ?>" onclick="return confirm('حذف الموظف؟')" class="text-red-500 font-bold bg-red-50 px-3 py-1 rounded">حذف</a>
+                                        <button onclick="openEditUserModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars($u['username'], ENT_QUOTES); ?>', '<?php echo $u['role']; ?>')" class="text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded ml-1 transition">تعديل ✏️</button>
+                                        <a href="?del_user=<?php echo $u['id']; ?>" onclick="return confirm('حذف الموظف؟')" class="text-red-500 hover:text-red-700 font-bold bg-red-50 hover:bg-red-100 px-3 py-1 rounded transition">حذف 🗑️</a>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -485,7 +518,7 @@ $username = $_SESSION['username'];
     </main>
 
     <div id="editModal" class="fixed inset-0 bg-slate-900 bg-opacity-50 hidden items-center justify-center z-50 p-4 transition-opacity">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <h3 class="text-lg font-bold text-slate-800">تعديل بيانات المكتب</h3>
                 <button onclick="closeModal('editModal')" class="text-slate-400 hover:text-red-500 transition">
@@ -543,6 +576,64 @@ $username = $_SESSION['username'];
                 <button onclick="closeModal('editModal')" class="px-4 py-2 text-slate-600 bg-white border border-slate-300 rounded-lg font-bold hover:bg-slate-50 transition text-sm">إلغاء</button>
                 <button id="btnSaveEdit" onclick="saveClientEdit()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition text-sm">حفظ التعديلات</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal View Order -->
+    <div id="modal-view-order" class="fixed inset-0 bg-slate-900 bg-opacity-50 hidden items-center justify-center z-[60] p-4 transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="text-lg font-bold text-slate-800">تفاصيل الطلب <span id="view_order_id" class="text-indigo-600 font-mono"></span></h3>
+                <button onclick="closeModal('modal-view-order')" class="text-slate-400 hover:text-red-500 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5 text-sm">
+                <div><span class="block text-xs font-bold text-slate-500">اسم المكتب</span><div id="view_client_name" class="font-bold text-slate-800 mt-1"></div></div>
+                <div><span class="block text-xs font-bold text-slate-500">عدد الكراتين</span><div id="view_carton_count" class="font-bold text-slate-800 mt-1"></div></div>
+                <div><span class="block text-xs font-bold text-slate-500">مبلغ التوصيل</span><div id="view_amount" class="font-bold text-indigo-600 mt-1"></div></div>
+                <div><span class="block text-xs font-bold text-slate-500">تاريخ الطلب</span><div id="view_created_at" class="font-bold text-slate-800 mt-1" dir="ltr" style="text-align: right;"></div></div>
+                <div><span class="block text-xs font-bold text-slate-500">المحافظة</span><div id="view_province" class="font-bold text-slate-800 mt-1"></div></div>
+                <div><span class="block text-xs font-bold text-slate-500">رقم الهاتف</span><div id="view_phone" class="font-bold text-slate-800 mt-1" dir="ltr" style="text-align: right;"></div></div>
+                <div class="col-span-1 md:col-span-2"><span class="block text-xs font-bold text-slate-500">العنوان التفصيلي</span><div id="view_address" class="font-bold text-slate-800 mt-1"></div></div>
+                <div class="col-span-1 md:col-span-2"><span class="block text-xs font-bold text-slate-500">رقم الوصل</span><div id="view_receipt_no" class="font-bold text-slate-800 mt-1"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit User -->
+    <div id="editUserModal" class="fixed inset-0 bg-slate-900 bg-opacity-50 hidden items-center justify-center z-[60] p-4 transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="text-lg font-bold text-slate-800">تعديل بيانات الموظف</h3>
+                <button onclick="closeModal('editUserModal')" class="text-slate-400 hover:text-red-500 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form method="POST" class="p-6 space-y-4">
+                <input type="hidden" name="edit_user_id" id="edit_user_id">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">اسم المستخدم</label>
+                    <input type="text" name="edit_username" id="edit_username" required class="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">كلمة المرور <span class="text-xs text-slate-400">(اتركه فارغاً لعدم التغيير)</span></label>
+                    <input type="password" name="edit_password" id="edit_password" class="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">الصلاحية</label>
+                    <select name="edit_role" id="edit_role" class="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none bg-white">
+                        <option value="entry">موظف إدخال طلبات</option>
+                        <option value="editor">معدل بيانات العملاء</option>
+                        <option value="viewer">مراقب (سجل الطلبات)</option>
+                        <option value="admin">مدير نظام (كامل الصلاحيات)</option>
+                    </select>
+                </div>
+                <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('editUserModal')" class="px-4 py-2 text-slate-600 bg-white border border-slate-300 rounded-lg font-bold hover:bg-slate-50 transition text-sm">إلغاء</button>
+                    <button type="submit" name="edit_user_btn" class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition text-sm">حفظ التعديلات</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -604,6 +695,18 @@ function switchTab(tabId, btn) {
     document.getElementById(tabId).classList.remove("hidden");
     btn.classList.add("bg-indigo-600", "text-white");
     btn.classList.remove("text-slate-300", "hover:bg-slate-800");
+}
+
+function toggleSidebar(e) {
+    if(e) e.stopPropagation();
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar.classList.contains('hidden')) {
+        sidebar.classList.remove('hidden');
+        sidebar.classList.add('flex');
+    } else {
+        sidebar.classList.add('hidden');
+        sidebar.classList.remove('flex');
+    }
 }
 
 // === البحث الذكي ===
@@ -778,27 +881,54 @@ function generateExcelFile(o) {
 function fetchOrdersFromServer() {
     fetch('get_orders.php').then(res => res.json()).then(data => {
         currentOrdersList = data;
-        const tbody = document.getElementById('ordersPreviewContainer');
-        if(!tbody) return;
-        if(data.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">لا توجد طلبات مسجلة.</td></tr>`; return; }
-        let html = '';
-        data.forEach(order => {
-            const safeOrderData = JSON.stringify(order).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-            
-            html += `<tr class="hover:bg-slate-50">
-                        <td class="px-4 py-3 font-mono text-slate-500">#${order.id}</td>
-                        <td class="px-4 py-3 font-bold text-slate-700">${order.client_name}</td>
-                        <td class="px-4 py-3 text-slate-600">${order.carton_count} كارتونة</td>
-                        <td class="px-4 py-3 text-indigo-600 font-bold">${formatNumStr(order.amount)} د.ع</td>
-                        <td class="px-4 py-3 text-slate-500 text-xs" dir="ltr">${order.created_at}</td>
-                        <td class="px-4 py-3 text-center flex justify-center gap-2">
-                            <button onclick="exportSingleOrder('${safeOrderData}')" class="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded text-xs font-bold transition">تصدير</button>
-                            <button onclick="deleteOrder(${order.id})" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1 rounded text-xs font-bold transition">حذف</button>
-                        </td>
-                     </tr>`;
-        });
-        tbody.innerHTML = html;
+        // تعيين فلتر التاريخ الافتراضي ليومنا هذا إن لم يكن معيناً
+        if(!document.getElementById('order-date-filter').value) {
+            document.getElementById('order-date-filter').value = new Date().toISOString().split('T')[0];
+        }
+        renderOrdersTable();
     });
+}
+
+function renderOrdersTable() {
+    const tbody = document.getElementById('ordersPreviewContainer');
+    if(!tbody) return;
+    const filterDate = document.getElementById('order-date-filter').value;
+    
+    let filtered = currentOrdersList;
+    if(filterDate) {
+        filtered = currentOrdersList.filter(o => o.created_at.startsWith(filterDate));
+    }
+    
+    if(filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">لا توجد طلبات مطابقة في هذا التاريخ.</td></tr>`; return; }
+    
+    let html = '';
+    filtered.forEach(order => {
+        const safeOrderData = JSON.stringify(order).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        
+        html += `<tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 font-mono text-slate-500">#${order.id}</td>
+                    <td class="px-4 py-3 font-bold text-slate-700">${order.client_name}</td>
+                    <td class="px-4 py-3 text-slate-600">${order.carton_count} كارتونة</td>
+                    <td class="px-4 py-3 text-indigo-600 font-bold">${formatNumStr(order.amount)} د.ع</td>
+                    <td class="px-4 py-3 text-slate-500 text-xs" dir="ltr">${order.created_at}</td>
+                    <td class="px-4 py-3 text-center flex justify-center gap-1.5 flex-wrap">
+                        <button onclick="openViewOrderModal('${safeOrderData}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded text-xs font-bold transition">استعراض 👁️</button>
+                        <button onclick="exportSingleOrder('${safeOrderData}')" class="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded text-xs font-bold transition">تصدير</button>
+                        <button onclick="deleteOrder(${order.id})" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1 rounded text-xs font-bold transition">حذف 🗑️</button>
+                    </td>
+                 </tr>`;
+    });
+    tbody.innerHTML = html;
+}
+
+function deleteOrder(id) {
+    if(confirm('هل أنت متأكد من حذف هذا الطلب نهائياً؟')) {
+        fetch('delete_order.php', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: id}) })
+        .then(res => res.json()).then(data => {
+            if(data.success) fetchOrdersFromServer();
+            else alert('خطأ في الحذف: ' + data.error);
+        });
+    }
 }
 
 function exportOrdersToExcel() {
@@ -883,6 +1013,31 @@ function exportSingleOrder(orderJson) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(finalRows), "Sheet1");
     XLSX.writeFile(wb, `إعادة_تصدير_${order.client_name}_${order.carton_count}_كارتونة.xlsx`);
+}
+
+function openViewOrderModal(orderJson) {
+    const o = JSON.parse(orderJson);
+    document.getElementById('view_order_id').innerText = '#' + o.id;
+    document.getElementById('view_client_name').innerText = o.client_name;
+    document.getElementById('view_carton_count').innerText = o.carton_count + ' كارتونة';
+    document.getElementById('view_amount').innerText = formatNumStr(o.amount) + ' د.ع';
+    document.getElementById('view_created_at').innerText = o.created_at;
+    document.getElementById('view_province').innerText = o.province;
+    document.getElementById('view_phone').innerText = o.phone;
+    document.getElementById('view_address').innerText = o.address;
+    document.getElementById('view_receipt_no').innerText = o.receipt_no || 'لم يتم إدخال رقم وصل';
+    
+    document.getElementById('modal-view-order').classList.remove('hidden');
+    document.getElementById('modal-view-order').classList.add('flex');
+}
+
+function openEditUserModal(id, username, role) {
+    document.getElementById('edit_user_id').value = id;
+    document.getElementById('edit_username').value = username;
+    document.getElementById('edit_role').value = role;
+    document.getElementById('edit_password').value = '';
+    document.getElementById('editUserModal').classList.remove('hidden');
+    document.getElementById('editUserModal').classList.add('flex');
 }
 
 function fetchLogsFromServer() {
