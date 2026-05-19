@@ -228,8 +228,13 @@ $username = $_SESSION['username'];
             <span class="bg-slate-700 text-indigo-300 px-2 py-0.5 rounded"><?php echo strtoupper($role); ?></span>
         </div>
         <nav class="flex-1 px-4 py-6 space-y-2">
+            <button id="btn-home" onclick="switchTab('home-tab', this); loadHomeDashboard();" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-indigo-600 text-white font-bold transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                الرئيسية
+            </button>
+
             <?php if($role == 'admin' || $role == 'entry'): ?>
-            <button onclick="switchTab('shipping-tab', this)" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-indigo-600 text-white font-bold transition">
+            <button id="btn-shipping" onclick="switchTab('shipping-tab', this)" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                 طلب توصيل جديد
             </button>
@@ -276,8 +281,113 @@ $username = $_SESSION['username'];
     <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50">
         <div class="flex-1 overflow-y-auto p-4 sm:p-8">
 
+            <!-- تبويب الرئيسية (Home Dashboard) -->
+            <div id="home-tab" class="tab-content block animate-fade-in max-w-7xl mx-auto">
+                <div class="space-y-8">
+                    
+                    <!-- 1. قسم محفظتي (Wallet Card) -->
+                    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
+                        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                            <div>
+                                <p class="text-blue-100 font-bold mb-2 text-sm">الرصيد المتاح</p>
+                                <div class="flex items-baseline gap-2">
+                                    <h2 class="text-5xl font-extrabold" id="dash-wallet-balance">0</h2>
+                                    <span class="text-xl font-bold text-blue-200">د.ع</span>
+                                </div>
+                            </div>
+                            <button class="bg-slate-900 hover:bg-black text-white px-8 py-3 rounded-xl text-sm font-bold shadow-lg transition w-full md:w-auto">تصفية الحساب</button>
+                        </div>
+                        <!-- Decorative background shapes -->
+                        <div class="absolute top-0 right-0 w-48 h-48 bg-white opacity-5 rounded-full -translate-x-10 -translate-y-10"></div>
+                        <div class="absolute bottom-0 left-10 w-32 h-32 bg-white opacity-10 rounded-full translate-y-8"></div>
+                    </div>
+
+                    <!-- 2. قسم إجراءات سريعة (Quick Actions) -->
+                    <div>
+                        <h3 class="font-bold text-slate-800 mb-4 text-lg">إجراءات سريعة</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <?php if($role == 'admin' || $role == 'entry'): ?>
+                            <div onclick="switchTab('shipping-tab', document.getElementById('btn-shipping'))" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md hover:border-indigo-200 transition">
+                                <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></div>
+                                <span class="text-sm font-bold text-slate-700">إنشاء شحنة</span>
+                            </div>
+                            <?php endif; ?>
+                            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md hover:border-emerald-200 transition">
+                                <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg></div>
+                                <span class="text-sm font-bold text-slate-700">طباعة البوليصات</span>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md hover:border-pink-200 transition">
+                                <div class="w-14 h-14 bg-pink-50 text-pink-600 rounded-full flex items-center justify-center"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg></div>
+                                <div class="flex flex-col items-center"><span class="text-sm font-bold text-slate-700 text-center">جاهز للتسليم</span><span class="text-[10px] font-bold text-pink-500 mt-1 bg-pink-50 px-2 py-0.5 rounded-full" id="dash-pickup-count">0 بيك أب</span></div>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md hover:border-purple-200 transition">
+                                <div class="w-14 h-14 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg></div>
+                                <span class="text-sm font-bold text-slate-700">التقارير</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. قسم حالات الشحنات (Shipment Statuses) -->
+                    <div>
+                        <h3 class="font-bold text-slate-800 mb-4 text-lg">حالات شحناتي</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
+                                <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center shrink-0"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>
+                                <div><p class="text-xs text-slate-500 font-bold mb-1">واصل</p><p class="text-2xl font-extrabold text-slate-800" id="dash-delivered">0</p></div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
+                                <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center shrink-0"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                                <div><p class="text-xs text-slate-500 font-bold mb-1">مندوب التوصيل</p><p class="text-2xl font-extrabold text-slate-800" id="dash-out-for-delivery">0</p></div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
+                                <div class="w-12 h-12 bg-sky-100 text-sky-600 rounded-xl flex items-center justify-center shrink-0"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg></div>
+                                <div><p class="text-xs text-slate-500 font-bold mb-1">قيد الفرز والنقل</p><p class="text-2xl font-extrabold text-slate-800" id="dash-processing">0</p></div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
+                                <div class="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center shrink-0"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></div>
+                                <div><p class="text-xs text-slate-500 font-bold mb-1">الرواجع</p><p class="text-2xl font-extrabold text-slate-800" id="dash-returned">0</p></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. قسم مشاكل التوصيل (Action Required) -->
+                    <div>
+                        <h3 class="font-bold text-slate-800 mb-4 text-lg">مشاكل تحتاج تدخلاً</h3>
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden divide-y divide-slate-100">
+                            <div class="p-5 flex justify-between items-center hover:bg-slate-50 cursor-pointer transition">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-2.5 h-2.5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-800">بانتظار إجراء التاجر</p>
+                                        <p class="text-xs text-slate-500 mt-0.5">شحنات متوقفة تحتاج تحديث بيانات أو هاتف</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold" id="dash-action-needed">0</span>
+                                    <svg class="w-5 h-5 text-slate-300 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                                </div>
+                            </div>
+                            <div class="p-5 flex justify-between items-center hover:bg-slate-50 cursor-pointer transition">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-2.5 h-2.5 bg-orange-500 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.6)]"></div>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-800">متابع - إعادة توصيل</p>
+                                        <p class="text-xs text-slate-500 mt-0.5">شحنات تأجل استلامها من قبل الزبون</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold" id="dash-followup">0</span>
+                                    <svg class="w-5 h-5 text-slate-300 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
             <?php if($role == 'admin' || $role == 'entry'): ?>
-            <div id="shipping-tab" class="tab-content block animate-fade-in max-w-5xl mx-auto">
+            <div id="shipping-tab" class="tab-content hidden animate-fade-in max-w-5xl mx-auto">
                 <div class="glass-panel rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
                     <h2 class="text-lg font-bold text-slate-800 mb-6 pb-4 border-b border-slate-100 flex items-center gap-2">
                         <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -786,6 +896,7 @@ function formatNumberInput(element) {
 // === التهيئة ومسح الفورمة ===
 window.onload = function() {
     resetForm();
+    loadHomeDashboard();
     if(USER_ROLE == 'admin' || USER_ROLE == 'entry' || USER_ROLE == 'editor') fetchClientsFromServer();
     if(USER_ROLE == 'admin' || USER_ROLE == 'viewer') fetchOrdersFromServer();
     if(USER_ROLE == 'admin') fetchLogsFromServer();
@@ -1342,6 +1453,149 @@ function loadTrackingData() {
     document.getElementById('track-card-delivered').innerText = counts.delivered;
     document.getElementById('track-card-returned').innerText = counts.returned;
     document.getElementById('track-card-debt').innerText = formatNumStr(counts.debt) + ' د.ع';
+}
+
+// === الرئيسية (Home Dashboard) ===
+function loadHomeDashboard() {
+    // بيانات وهمية تمهيداً لربطها بالـ API الحقيقي
+    if(document.getElementById('dash-wallet-balance')) {
+        document.getElementById('dash-wallet-balance').innerText = '1,422,000';
+        document.getElementById('dash-pickup-count').innerText = '12';
+        document.getElementById('dash-delivered').innerText = '84';
+        document.getElementById('dash-out-for-delivery').innerText = '15';
+        document.getElementById('dash-processing').innerText = '42';
+        document.getElementById('dash-returned').innerText = '3';
+        document.getElementById('dash-action-needed').innerText = '5';
+        document.getElementById('dash-followup').innerText = '8';
+    }
+}
+</script>
+</body>
+</html> const matchUser = userQ ? log.username === userQ : true;
+        const matchAction = actionQ ? (log.action_details && log.action_details.toLowerCase().includes(actionQ)) : true;
+        const matchDate = dateQ ? log.created_at.startsWith(dateQ) : true;
+        return matchUser && matchAction && matchDate;
+    });
+
+    if (filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-slate-500">لا توجد نتائج مطابقة للفلاتر.</td></tr>`; return; }
+        
+    let html = '';
+    filtered.forEach(log => {
+        html += `<tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 text-slate-500 text-xs font-mono" dir="ltr">${log.created_at}</td>
+                    <td class="px-4 py-3 font-bold text-indigo-700">${log.username}</td>
+                    <td class="px-4 py-3 text-slate-700">${log.action_details}</td>
+                 </tr>`;
+    });
+    tbody.innerHTML = html;
+}
+
+// === كشف الحسابات والخصومات ===
+function fetchFinancialReport() {
+    fetch('get_discount_report.php').then(res => res.json()).then(data => {
+        if(data.error) return console.error(data.error);
+        currentFinancialsList = data;
+        renderFinancialsTable();
+    }).catch(err => console.error(err));
+}
+
+function renderFinancialsTable() {
+    const tbody = document.getElementById('financialsContainer');
+    if(!tbody) return;
+    
+    const query = document.getElementById('financial-search').value.toLowerCase();
+    let filtered = currentFinancialsList;
+    if(query) {
+        filtered = currentFinancialsList.filter(item => Object.values(item).join(' ').toLowerCase().includes(query));
+    }
+
+    let totalSales = 0, totalDiscounts = 0, totalNet = 0;
+    let html = '';
+    
+    if(filtered.length === 0) {
+        html = `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">لا توجد بيانات مطابقة.</td></tr>`;
+    } else {
+        filtered.forEach(item => {
+            const keys = Object.keys(item);
+            // استخراج القيم بمرونة سواء كانت مسميات الأعمدة عربي أو إنجليزي
+            const name = keys.length > 0 ? item[keys[0]] : '-';
+            const tAmount = keys.length > 1 ? parseFloat(item[keys[1]]) || 0 : 0;
+            const dPercent = keys.length > 2 ? parseFloat(item[keys[2]]) || 0 : 0;
+            const dValue = keys.length > 3 ? parseFloat(item[keys[3]]) || 0 : 0;
+            const net = keys.length > 4 ? parseFloat(item[keys[4]]) || 0 : 0;
+
+            totalSales += tAmount; totalDiscounts += dValue; totalNet += net;
+            html += `<tr class="hover:bg-slate-50"><td class="px-4 py-3 font-bold text-slate-700">${name}</td><td class="px-4 py-3 text-slate-600 font-bold">${formatNumStr(tAmount)} د.ع</td><td class="px-4 py-3 text-rose-600 font-bold" dir="ltr">%${dPercent}</td><td class="px-4 py-3 text-rose-600 font-bold">${formatNumStr(dValue)} د.ع</td><td class="px-4 py-3 text-emerald-600 font-bold">${formatNumStr(net)} د.ع</td></tr>`;
+        });
+    }
+    
+    tbody.innerHTML = html;
+    document.getElementById('card-total-sales').innerText = formatNumStr(totalSales) + ' د.ع';
+    document.getElementById('card-total-discounts').innerText = formatNumStr(totalDiscounts) + ' د.ع';
+    document.getElementById('card-total-net').innerText = formatNumStr(totalNet) + ' د.ع';
+}
+
+// === تتبع الشحنات (Mock Data مؤقتاً) ===
+function loadTrackingData() {
+    // بيانات وهمية للاختبار لحين ربطها بقاعدة البيانات والـ API
+    const mockData = [
+        { local_id: '1042', tracking_no: 'PRM-883921', client: 'مكتبة الأمل', province: 'بغداد', phone: '07712345678', amount: 150000, status: 'واصلة' },
+        { local_id: '1043', tracking_no: 'PRM-883922', client: 'قرطاسية الطالب', province: 'البصرة', phone: '07811122233', amount: 320000, status: 'قيد التوصيل' },
+        { local_id: '1044', tracking_no: 'PRM-883923', client: 'مكتبة الفجر', province: 'اربيل', phone: '07501234567', amount: 75000, status: 'بانتظار المندوب' },
+        { local_id: '1045', tracking_no: 'PRM-883924', client: 'مكتبة النور', province: 'بابل', phone: '07809998877', amount: 210000, status: 'راجعة' }
+    ];
+
+    let html = '';
+    let counts = { progress: 0, delivered: 0, returned: 0, debt: 0 };
+
+    mockData.forEach(item => {
+        let statusBadge = '';
+        if (item.status === 'واصلة') {
+            statusBadge = '<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">✅ سلمت بنجاح</span>';
+            counts.delivered++;
+        } else if (item.status === 'قيد التوصيل') {
+            statusBadge = '<span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold">🚚 قيد التوصيل</span>';
+            counts.progress++;
+            counts.debt += item.amount;
+        } else if (item.status === 'راجعة') {
+            statusBadge = '<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold">❌ راجعة</span>';
+            counts.returned++;
+        } else {
+            statusBadge = '<span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-bold">⏳ بانتظار المندوب</span>';
+            counts.debt += item.amount;
+        }
+
+        html += `<tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 font-mono text-slate-500 font-bold">#${item.local_id}</td>
+                    <td class="px-4 py-3 font-mono text-indigo-600 font-bold">${item.tracking_no}</td>
+                    <td class="px-4 py-3 font-bold text-slate-700">${item.client}</td>
+                    <td class="px-4 py-3 text-slate-600">${item.province}</td>
+                    <td class="px-4 py-3 text-slate-600 font-mono text-sm" dir="ltr"><div class="text-right">${item.phone}</div></td>
+                    <td class="px-4 py-3 font-bold text-slate-800">${formatNumStr(item.amount)} د.ع</td>
+                    <td class="px-4 py-3 text-center">${statusBadge}</td>
+                 </tr>`;
+    });
+
+    document.getElementById('trackingContainer').innerHTML = html;
+    document.getElementById('track-card-progress').innerText = counts.progress;
+    document.getElementById('track-card-delivered').innerText = counts.delivered;
+    document.getElementById('track-card-returned').innerText = counts.returned;
+    document.getElementById('track-card-debt').innerText = formatNumStr(counts.debt) + ' د.ع';
+}
+
+// === الرئيسية (Home Dashboard) ===
+function loadHomeDashboard() {
+    // بيانات وهمية تمهيداً لربطها بالـ API الحقيقي
+    if(document.getElementById('dash-wallet-balance')) {
+        document.getElementById('dash-wallet-balance').innerText = '1,422,000';
+        document.getElementById('dash-pickup-count').innerText = '12';
+        document.getElementById('dash-delivered').innerText = '84';
+        document.getElementById('dash-out-for-delivery').innerText = '15';
+        document.getElementById('dash-processing').innerText = '42';
+        document.getElementById('dash-returned').innerText = '3';
+        document.getElementById('dash-action-needed').innerText = '5';
+        document.getElementById('dash-followup').innerText = '8';
+    }
 }
 </script>
 </body>
