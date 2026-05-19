@@ -48,19 +48,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_btn'])) {
         die("خطأ أمني: طلب غير صالح.");
     }
 
-    $username = trim($_POST['username']);
-    $password = $_POST['password'];
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
-    $stmt->execute([$username]);
-    $user = $stmt->fetch();
-    if ($user && password_verify($password, $user['password'])) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['role'] = $user['role'];
-        header("Location: index.php");
-        exit;
-    } else {
-        $login_error = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
+    // التحقق من محاولات تسجيل الدخول (Brute Force Protection)
+    if (isset($_SESSION['login_attempts']) && $_SESSION['login_attempts'] >= 5) {
+        if (isset($_SESSION['lockout_time']) && time() - $_SESSION['lockout_time'] < 900) {
+            $minutes_left = ceil((900 - (time() - $_SESSION['lockout_time'])) / 60);
+            $login_error = "تم قفل الحساب مؤقتاً بسبب كثرة المحاولات الفاشلة. يرجى المحاولة بعد $minutes_left دقيقة.";
+        } else {
+            // انقضت فترة القفل (15 دقيقة)، إعادة تعيين العداد
+            unset($_SESSION['login_attempts']);
+            unset($_SESSION['lockout_time']);
+        }
+    }
+
+    if (empty($login_error)) {
+        $username = trim($_POST['username']);
+        $password = $_POST['password'];
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch();
+        
+        if ($user && password_verify($password, $user['password'])) {
+            // تصفير العداد عند النجاح
+            unset($_SESSION['login_attempts']);
+            unset($_SESSION['lockout_time']);
+            
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role'] = $user['role'];
+            header("Location: index.php");
+            exit;
+        } else {
+            $_SESSION['login_attempts'] = isset($_SESSION['login_attempts']) ? $_SESSION['login_attempts'] + 1 : 1;
+            $_SESSION['lockout_time'] = time();
+            $login_error = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
+        }
     }
 }
 

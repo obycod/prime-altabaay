@@ -16,12 +16,12 @@ if ($data && isset($data['id'])) {
     try {
         $stmt = $pdo->prepare("UPDATE clients SET client_type = ?, name = ?, phone = ?, phone2 = ?, province = ?, address = ? WHERE id = ?");
         $stmt->execute([
-            $data['client_type'],
-            $data['name'], 
-            $data['phone'], 
-            $data['phone2'], 
-            $data['province'],
-            $data['address'],
+            htmlspecialchars(strip_tags($data['client_type']), ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars(strip_tags($data['name']), ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars(strip_tags($data['phone']), ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars(strip_tags($data['phone2']), ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars(strip_tags($data['province']), ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars(strip_tags($data['address']), ENT_QUOTES, 'UTF-8'),
             $data['id']
         ]);
         

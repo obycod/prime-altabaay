@@ -17,13 +17,13 @@ if ($data) {
         // حفظ الطلب فقط في أرشيف الطلبات دون المساس بجدول العملاء
         $stmt = $pdo->prepare("INSERT INTO orders (client_name, phone, province, address, carton_count, amount, receipt_no) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
-            $data['clientName'], 
-            $data['phoneNumber'], 
-            $data['provinceName'], 
-            $data['address'],
+            htmlspecialchars(strip_tags($data['clientName']), ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars(strip_tags($data['phoneNumber']), ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars(strip_tags($data['provinceName']), ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars(strip_tags($data['address']), ENT_QUOTES, 'UTF-8'),
             $data['cartonCount'], 
             $data['amount'], 
-            $data['receiptNo']
+            htmlspecialchars(strip_tags($data['receiptNo']), ENT_QUOTES, 'UTF-8')
         ]);
         
         echo json_encode(['success' => true, 'order_id' => $pdo->lastInsertId()]);
