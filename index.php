@@ -254,6 +254,10 @@ $username = $_SESSION['username'];
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 إدارة الموظفين
             </button>
+            <button onclick="switchTab('financials-tab', this); fetchFinancialReport();" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                الحسابات والخصومات 💰
+            </button>
             <button onclick="switchTab('logs-tab', this); fetchLogsFromServer();" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                 سجل المراقبة 👁️
@@ -489,6 +493,55 @@ $username = $_SESSION['username'];
             <?php endif; ?>
 
             <?php if($role == 'admin'): ?>
+            <div id="financials-tab" class="tab-content hidden animate-fade-in max-w-7xl mx-auto">
+                <div class="glass-panel rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                    <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            كشف الحسابات والخصومات
+                        </h2>
+                        <button onclick="fetchFinancialReport()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-4 rounded-lg transition text-sm">🔄 تحديث البيانات</button>
+                    </div>
+                    
+                    <!-- البطاقات العلوية للإحصائيات -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
+                            <h3 class="text-blue-100 text-sm font-bold mb-1">إجمالي المبيعات الكلية</h3>
+                            <div class="text-3xl font-extrabold" id="card-total-sales">0 د.ع</div>
+                        </div>
+                        <div class="bg-gradient-to-r from-rose-500 to-rose-600 rounded-xl p-6 text-white shadow-lg">
+                            <h3 class="text-rose-100 text-sm font-bold mb-1">إجمالي الخصومات الممنوحة</h3>
+                            <div class="text-3xl font-extrabold" id="card-total-discounts">0 د.ع</div>
+                        </div>
+                        <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl p-6 text-white shadow-lg">
+                            <h3 class="text-emerald-100 text-sm font-bold mb-1">الصافي المطلوب تحصيله</h3>
+                            <div class="text-3xl font-extrabold" id="card-total-net">0 د.ع</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <input type="text" id="financial-search" oninput="renderFinancialsTable()" placeholder="بحث سريع باسم المكتب أو الوكيل..." class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm">
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm text-right">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="px-4 py-3 font-bold text-slate-600">اسم المكتب</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600">إجمالي المبالغ</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600">نسبة الخصم</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600">قيمة الخصم</th>
+                                    <th class="px-4 py-3 font-bold text-slate-600">المبلغ الصافي</th>
+                                </tr>
+                            </thead>
+                            <tbody id="financialsContainer" class="divide-y divide-slate-100 bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if($role == 'admin'): ?>
             <div id="logs-tab" class="tab-content hidden animate-fade-in max-w-7xl mx-auto">
                 <div class="glass-panel rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
                     <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
@@ -657,6 +710,7 @@ const USER_ROLE = '<?php echo $role; ?>';
 let currentClientsList = [];
 let currentOrdersList = [];
 let currentLogsList = [];
+let currentFinancialsList = [];
 
 // === التنسيق المحاسبي ===
 function formatNumStr(num) {
@@ -1139,6 +1193,51 @@ function renderLogsTable() {
                  </tr>`;
     });
     tbody.innerHTML = html;
+}
+
+// === كشف الحسابات والخصومات ===
+function fetchFinancialReport() {
+    fetch('get_discount_report.php').then(res => res.json()).then(data => {
+        if(data.error) return console.error(data.error);
+        currentFinancialsList = data;
+        renderFinancialsTable();
+    }).catch(err => console.error(err));
+}
+
+function renderFinancialsTable() {
+    const tbody = document.getElementById('financialsContainer');
+    if(!tbody) return;
+    
+    const query = document.getElementById('financial-search').value.toLowerCase();
+    let filtered = currentFinancialsList;
+    if(query) {
+        filtered = currentFinancialsList.filter(item => Object.values(item).join(' ').toLowerCase().includes(query));
+    }
+
+    let totalSales = 0, totalDiscounts = 0, totalNet = 0;
+    let html = '';
+    
+    if(filtered.length === 0) {
+        html = `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">لا توجد بيانات مطابقة.</td></tr>`;
+    } else {
+        filtered.forEach(item => {
+            const keys = Object.keys(item);
+            // استخراج القيم بمرونة سواء كانت مسميات الأعمدة عربي أو إنجليزي
+            const name = keys.length > 0 ? item[keys[0]] : '-';
+            const tAmount = keys.length > 1 ? parseFloat(item[keys[1]]) || 0 : 0;
+            const dPercent = keys.length > 2 ? parseFloat(item[keys[2]]) || 0 : 0;
+            const dValue = keys.length > 3 ? parseFloat(item[keys[3]]) || 0 : 0;
+            const net = keys.length > 4 ? parseFloat(item[keys[4]]) || 0 : 0;
+
+            totalSales += tAmount; totalDiscounts += dValue; totalNet += net;
+            html += `<tr class="hover:bg-slate-50"><td class="px-4 py-3 font-bold text-slate-700">${name}</td><td class="px-4 py-3 text-slate-600 font-bold">${formatNumStr(tAmount)} د.ع</td><td class="px-4 py-3 text-rose-600 font-bold" dir="ltr">%${dPercent}</td><td class="px-4 py-3 text-rose-600 font-bold">${formatNumStr(dValue)} د.ع</td><td class="px-4 py-3 text-emerald-600 font-bold">${formatNumStr(net)} د.ع</td></tr>`;
+        });
+    }
+    
+    tbody.innerHTML = html;
+    document.getElementById('card-total-sales').innerText = formatNumStr(totalSales) + ' د.ع';
+    document.getElementById('card-total-discounts').innerText = formatNumStr(totalDiscounts) + ' د.ع';
+    document.getElementById('card-total-net').innerText = formatNumStr(totalNet) + ' د.ع';
 }
 </script>
 </body>
