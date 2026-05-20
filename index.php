@@ -241,10 +241,12 @@ $username = $_SESSION['username'];
             <span class="bg-slate-700 text-indigo-300 px-2 py-0.5 rounded"><?php echo strtoupper($role); ?></span>
         </div>
         <nav class="flex-1 px-4 py-6 space-y-2">
+            <?php if($role != 'editor'): ?>
             <button id="btn-home" onclick="switchTab('home-tab', this); loadHomeDashboard();" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-indigo-600 text-white font-bold transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                 الرئيسية
             </button>
+            <?php endif; ?>
 
             <?php if($role == 'admin' || $role == 'entry'): ?>
             <button id="btn-shipping" onclick="switchTab('shipping-tab', this)" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white font-bold transition">
@@ -303,7 +305,7 @@ $username = $_SESSION['username'];
         <div class="flex-1 overflow-y-auto p-4 sm:p-8">
 
             <!-- تبويب الرئيسية (Home Dashboard) -->
-            <div id="home-tab" class="tab-content block animate-fade-in max-w-7xl mx-auto">
+            <div id="home-tab" class="tab-content <?php echo ($role != 'editor') ? 'block' : 'hidden'; ?> animate-fade-in max-w-7xl mx-auto">
                 <div class="space-y-8">
                     
                     <!-- 1. قسم محفظتي (Wallet Card) -->
@@ -493,7 +495,7 @@ $username = $_SESSION['username'];
                         <?php endif; ?>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                         <div class="md:col-span-2">
                             <input type="text" id="tableSearch" placeholder="بحث عام في الجدول..." oninput="renderClientsTable()" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
                         </div>
@@ -507,10 +509,19 @@ $username = $_SESSION['username'];
                                 <option value="">كل المحافظات</option>
                             </select>
                         </div>
+                        <div>
+                            <select id="filterDataStatus" onchange="renderClientsTable()" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white">
+                                <option value="all">كل البيانات</option>
+                                <option value="incomplete">⚠️ نواقص فقط</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <div class="overflow-x-auto rounded-xl border border-slate-200">
-                        <table class="min-w-full divide-y divide-slate-200 text-sm text-right">
+                    <!-- حاوية البطاقات الخاصة بالموبايل -->
+                    <div id="clientsMobileContainer" class="flex flex-col gap-4 md:hidden mt-4"></div>
+
+                    <div class="hidden md:block overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm text-right hidden md:table">
                             <thead class="bg-slate-100">
                                 <tr>
                                     <th class="px-4 py-3 font-bold text-slate-600 w-12">ت</th>
@@ -788,14 +799,14 @@ $username = $_SESSION['username'];
     </main>
 
     <div id="editModal" class="fixed inset-0 bg-slate-900 bg-opacity-50 hidden items-center justify-center z-50 p-4 transition-opacity">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
                 <h3 class="text-lg font-bold text-slate-800">تعديل بيانات المكتب</h3>
                 <button onclick="closeModal('editModal')" class="text-slate-400 hover:text-red-500 transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-            <div class="p-6 space-y-4">
+            <div class="p-6 space-y-4 overflow-y-auto">
                 <input type="hidden" id="edit_id">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="col-span-2">
@@ -842,7 +853,7 @@ $username = $_SESSION['username'];
                     </div>
                 </div>
             </div>
-            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 shrink-0">
                 <button onclick="closeModal('editModal')" class="px-4 py-2 text-slate-600 bg-white border border-slate-300 rounded-lg font-bold hover:bg-slate-50 transition text-sm">إلغاء</button>
                 <button id="btnSaveEdit" onclick="saveClientEdit()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition text-sm">حفظ التعديلات</button>
             </div>
@@ -933,11 +944,18 @@ function formatNumberInput(element) {
 // === التهيئة ومسح الفورمة ===
 window.onload = function() {
     resetForm();
-    loadHomeDashboard();
     if(USER_ROLE == 'admin' || USER_ROLE == 'entry' || USER_ROLE == 'editor') fetchClientsFromServer();
     if(USER_ROLE == 'admin' || USER_ROLE == 'viewer') fetchOrdersFromServer();
     if(USER_ROLE == 'admin') fetchLogsFromServer();
     
+    // توجيه معدل البيانات (editor) إلى تبويب المكاتب مباشرة وإخفاء الرئيسية
+    if(USER_ROLE === 'editor') {
+        const clientsBtn = document.querySelector(`button[onclick="switchTab('clients-tab', this)"]`);
+        if(clientsBtn) switchTab('clients-tab', clientsBtn);
+    } else {
+        loadHomeDashboard();
+    }
+
     // إبقاء تاب اليوزرز مفتوح اذا تمت اضافة مستخدم
     const urlParams = new URLSearchParams(window.location.search);
     if(urlParams.get('tab') === 'users') {
@@ -1070,17 +1088,37 @@ function populateFilters() {
 
 function renderClientsTable() {
     const tbody = document.getElementById('clientsPreviewContainer');
+    const mobileContainer = document.getElementById('clientsMobileContainer');
     if(!tbody) return;
     const sq = document.getElementById('tableSearch').value.toLowerCase();
     const tq = document.getElementById('filterType').value;
     const pq = document.getElementById('filterProvince').value;
+    const dq = document.getElementById('filterDataStatus') ? document.getElementById('filterDataStatus').value : 'all';
 
-    let filtered = currentClientsList.filter(c => ultraSmartMatch(sq, `${c.name||''} ${c.phone||''} ${c.province||''}`) && (tq ? c.client_type === tq : true) && (pq ? c.province === pq : true));
+    let filtered = currentClientsList.filter(c => {
+        const matchSearch = ultraSmartMatch(sq, `${c.name||''} ${c.phone||''} ${c.province||''}`);
+        const matchType = tq ? c.client_type === tq : true;
+        const matchProv = pq ? c.province === pq : true;
+        
+        let matchData = true;
+        if (dq === 'incomplete') {
+            const hasNoPhone = !c.phone || String(c.phone).trim() === '';
+            const hasNoAddress = !c.address || String(c.address).trim() === '';
+            matchData = hasNoPhone || hasNoAddress;
+        }
+        
+        return matchSearch && matchType && matchProv && matchData;
+    });
     document.getElementById('clientCountBadge').innerText = `${filtered.length} مكتب`;
 
-    if (filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">لا توجد نتائج مطابقة.</td></tr>`; return; }
+    if (filtered.length === 0) { 
+        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">لا توجد نتائج مطابقة.</td></tr>`; 
+        if(mobileContainer) mobileContainer.innerHTML = `<div class="p-8 text-center text-slate-500 bg-white rounded-xl shadow-sm border border-slate-100">لا توجد نتائج مطابقة.</div>`;
+        return; 
+    }
 
     let html = '';
+    let mobileHtml = '';
     filtered.forEach((client, idx) => {
         const safeData = JSON.stringify(client).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         html += `<tr class="hover:bg-slate-50">
@@ -1092,8 +1130,30 @@ function renderClientsTable() {
                     <td class="px-4 py-3 text-slate-500 text-xs max-w-[200px] truncate" title="${client.address || ''}">${client.address || '-'}</td>
                     <td class="px-4 py-3 text-center"><button data-client="${safeData}" onclick="openEditModal(this)" class="text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg text-xs font-bold">تعديل</button></td>
                  </tr>`;
+
+        // بناء البطاقة الذكية للموبايل
+        mobileHtml += `
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col gap-3">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h4 class="font-bold text-indigo-700 text-lg">${client.name}</h4>
+                    <span class="inline-block mt-1 bg-indigo-50 border border-indigo-100 text-indigo-700 py-0.5 px-2 rounded font-bold text-[10px]">${client.client_type || '-'}</span>
+                </div>
+                <div class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-bold shrink-0">📍 ${client.province}</div>
+            </div>
+            <div class="flex flex-col gap-1 text-sm text-slate-600 font-mono" dir="ltr">
+                <div class="text-right flex items-center justify-end gap-2 text-base font-bold text-slate-800"><span class="text-slate-400 text-xs">📱</span> ${client.phone}</div>
+                ${client.phone2 ? `<div class="text-right text-xs text-slate-400 flex items-center justify-end gap-2"><span>📱</span> ${client.phone2}</div>` : ''}
+            </div>
+            ${client.address ? `<div class="text-xs text-slate-500 line-clamp-2" title="${client.address}">🏠 ${client.address}</div>` : ''}
+            <button data-client="${safeData}" onclick="openEditModal(this)" class="w-full mt-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 py-3 rounded-lg text-sm font-bold transition flex justify-center items-center gap-2">
+                تعديل البيانات ✏️
+            </button>
+        </div>
+        `;
     });
     tbody.innerHTML = html;
+    if(mobileContainer) mobileContainer.innerHTML = mobileHtml;
 }
 
 // === التعديل ===
