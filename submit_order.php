@@ -33,12 +33,6 @@ if ($data) {
             // الحقل موجود مسبقاً، لا تفعل شيئاً
         }
 
-        try {
-            $pdo->query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS booklet_count INT DEFAULT 0 AFTER carton_count");
-        } catch (PDOException $e) {
-            // تجاهل الخطأ في حال عدم الدعم أو وجود الحقل
-        }
-
         $clientName = htmlspecialchars(strip_tags($data['clientName']), ENT_QUOTES, 'UTF-8');
         $phoneNumber = htmlspecialchars(strip_tags($data['phoneNumber']), ENT_QUOTES, 'UTF-8');
         $provinceName = htmlspecialchars(strip_tags($data['provinceName']), ENT_QUOTES, 'UTF-8');
@@ -48,12 +42,12 @@ if ($data) {
         $amount = $data['amount'];
         $receiptNo = htmlspecialchars(strip_tags($data['receiptNo']), ENT_QUOTES, 'UTF-8');
         
-        // Exact format requested by user
+        // Format notes for Prime API
         $notes = "عدد الكراتين الكلي للمكتبة ( " . $cartonCount . " ) وعدد الملازم ( " . $bookletCount . " )";
 
-        // حفظ الطلب فقط في أرشيف الطلبات دون المساس بجدول العملاء
-        $stmt = $pdo->prepare("INSERT INTO orders (client_name, phone, province, address, carton_count, booklet_count, amount, receipt_no) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$clientName, $phoneNumber, $provinceName, $address, $cartonCount, $bookletCount, $amount, $receiptNo]);
+        // Only save original fields to DB to prevent SQL errors
+        $stmt = $pdo->prepare("INSERT INTO orders (client_name, phone, province, address, carton_count, amount, receipt_no) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$clientName, $phoneNumber, $provinceName, $address, $cartonCount, $amount, $receiptNo]);
         
         $local_order_id = $pdo->lastInsertId();
         $order_id = $local_order_id;
@@ -106,7 +100,7 @@ if ($data) {
                 "locationDetails" => $address, // العنوان
                 "merchantLoginId" => $merchantLoginId,
                 "productInfo" => "ملازم الطابعي - " . $notes, // نوع البضاعة
-                "qty" => 1, // MUST BE 1
+                "qty" => 1, // MUST BE STRICTLY 1 to avoid Internal Server Error
                 "receiptAmtIqd" => (int)$amount, // المبلغ
                 "receiverHp1" => $phoneNumber, // الهاتف
                 "receiverName" => $clientName, // اسم المستلم
