@@ -112,7 +112,7 @@ if ($data) {
                 "locationDetails" => $address, // العنوان
                 "merchantLoginId" => $merchantLoginId,
                 "productInfo" => "ملازم الطابعي - " . $notes, // نوع البضاعة
-                "qty" => (int)$cartonCount, // عدد الكراتين
+                "qty" => 1, // عدد الكراتين
                 "receiptAmtIqd" => (int)$amount, // المبلغ
                 "receiverHp1" => $phoneNumber, // الهاتف
                 "receiverName" => $clientName, // اسم المستلم
