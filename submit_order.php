@@ -129,25 +129,44 @@ if ($data) {
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         
-        // 5. استخراج رقم الشحنة (Shipment ID) وحفظه
-        $prime_data = json_decode($prime_response, true);
+        // 5. استخراج رقم الشحنة (Shipment ID) بطريقة ذكية
         $tracking_no = null;
         
-        // الرد الناجح يأتي بصيغة {"42739333": 42739333}، الدالة reset تجلب أول قيمة
-        if ($http_code == 200 && is_array($prime_data) && !empty($prime_data)) {
-            $tracking_no = reset($prime_data); 
+        if ($http_code == 200 && !empty($prime_response)) {
+            $prime_data = json_decode($prime_response, true);
+            
+            if (is_array($prime_data)) {
+                // إذا كان الرد مصفوفة، استخرج أول قيمة
+                $tracking_no = reset($prime_data); 
+            } else {
+                // إذا كان الرد رقم مباشر أو نص، استخدمه
+                $tracking_no = trim($prime_response, '"'); 
+            }
             
             // تحديث حقل tracking_no في الطلب
-            $stmt_update = $pdo->prepare("UPDATE orders SET tracking_no = ? WHERE id = ?");
-            $stmt_update->execute([$tracking_no, $order_id]);
+            if ($tracking_no) {
+                $stmt_update = $pdo->prepare("UPDATE orders SET tracking_no = ? WHERE id = ?");
+                $stmt_update->execute([$tracking_no, $order_id]);
+            }
         }
         
-        echo json_encode([
-            'success' => true, 
-            'message' => 'تم حفظ الطلب وإرساله لشركة برايم بنجاح!', 
-            'tracking_no' => $tracking_no,
-            'order_id' => $order_id
-        ]);
+        // التحقق النهائي وإرسال الرد للواجهة
+        if ($tracking_no) {
+            echo json_encode([
+                'success' => true, 
+                'message' => 'تم حفظ الطلب وإرساله لشركة برايم بنجاح!', 
+                'tracking_no' => $tracking_no,
+                'order_id' => $order_id
+            ]);
+        } else {
+            // إذا فشل الإرسال إلى برايم، أخبر المستخدم مع إظهار الرد الفعلي للسيرفر لتسهيل اكتشاف الخطأ
+            echo json_encode([
+                'success' => false, 
+                'error' => 'تم الحفظ محلياً فقط. فشل الإرسال إلى برايم. رد السيرفر: ' . $prime_response
+            ]);
+            // ملاحظة: مسحنا الطلب المحلي إذا فشل الإرسال لتجنب تكرار الطلبات الخاطئة
+            $pdo->query("DELETE FROM orders WHERE id = $order_id");
+        }
         // =================================================================
     } catch(PDOException $e) {
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
