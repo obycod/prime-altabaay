@@ -25,7 +25,7 @@ if (isset($data['ids']) && is_array($data['ids'])) {
     }
 
     // 1. إعدادات API شركة Prime الحقيقية
-    $prime_token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJJTlRFR1JBVEVEX1NZU1RFTV9DT0RFOkFMVEFCQkUiLCJpYXQiOjE3NzkyNjgwNTIsImV4cCI6MTc4MTg2MDA1Mn0.ZI8zgA1--K6nFzULnxCHxnm8m7zUPFEBUapa_Xaw_fU"; // ⚠️ نفس التوكن المستخدم في الملف السابق
+    $prime_token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJJTlRFR1JBVEVEX1NZU1RFTV9DT0RFOkFMVEFCQkUiLCJpYXQiOjE3NzkyNjgwNTIsImV4cCI6MTc4MTg2MDA1Mn0.ZI8zgA1--K6nFzULnxCHxnm8m7zUPFEBUapa_Xaw_fU";
     $merchant_login_id = "AltabaayShop1"; // اليوزر الجديد الخاص بالطباعة
     $document_size = "A6"; 
 

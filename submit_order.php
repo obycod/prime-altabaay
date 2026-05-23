@@ -66,7 +66,7 @@ if ($data) {
         $order_id = $local_order_id;
 
         // 1. إعدادات حساب برايم الحقيقية (الـ Live)
-        $prime_token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJJTlRFR1JBVEVEX1NZU1RFTV9DT0RFOkFMVEFCQkUiLCJpYXQiOjE3NzkyNjgwNTIsImV4cCI6MTc4MTg2MDA1Mn0.ZI8zgA1--K6nFzULnxCHxnm8m7zUPFEBUapa_Xaw_fU"; // ⚠️ لا تنسَ لصق التوكن الطويل هنا
+        $prime_token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJJTlRFR1JBVEVEX1NZU1RFTV9DT0RFOkFMVEFCQkUiLCJpYXQiOjE3NzkyNjgwNTIsImV4cCI6MTc4MTg2MDA1Mn0.ZI8zgA1--K6nFzULnxCHxnm8m7zUPFEBUapa_Xaw_fU";
         $merchantLoginId = "AltabaayShop1"; // اليوزر الخاص بالتاجر الذي انشأناه
         $senderId = 134673; // رقم المتجر الذي تولد لدينا
         
