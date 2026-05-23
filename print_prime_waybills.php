@@ -1,45 +1,42 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
 session_start();
 require 'db.php';
 
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'error' => 'غير مصرح']);
-    exit;
+    die("Unauthorized Access.");
 }
 
-$data = json_decode(file_get_contents("php://input"), true);
-if (isset($data['ids']) && is_array($data['ids'])) {
-    $ids = implode(',', array_map('intval', $data['ids']));
+// Check if IDs are passed via GET parameter
+if (isset($_GET['ids']) && !empty($_GET['ids'])) {
+    $ids_array = explode(',', $_GET['ids']);
+    $ids = implode(',', array_map('intval', $ids_array));
 
-    // جلب أرقام التتبع (Prime Case IDs) من الطلبات المحددة
+    // Fetch tracking numbers based on order carton counts
     $stmt = $pdo->query("SELECT tracking_no, carton_count FROM orders WHERE id IN ($ids) AND tracking_no IS NOT NULL AND tracking_no != ''");
     $prime_ids = [];
     while ($row = $stmt->fetch()) {
         $count = isset($row['carton_count']) ? (int)$row['carton_count'] : 1;
         if ($count < 1) $count = 1;
+        // Duplicate the tracking number to print a label for each carton
         for ($i = 0; $i < $count; $i++) {
             $prime_ids[] = (int)$row['tracking_no'];
         }
     }
 
-    if(empty($prime_ids)){
-        echo json_encode(['success' => false, 'error' => 'الطلبات المحددة لا تحتوي على أرقام تتبع من Prime. يجب إرسالها أولاً.']);
-        exit;
+    if (empty($prime_ids)) {
+        die("Error: No Prime tracking numbers found for the selected orders. Please ensure orders are successfully submitted first.");
     }
 
-    // 1. إعدادات API شركة Prime الحقيقية
     $prime_token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJJTlRFR1JBVEVEX1NZU1RFTV9DT0RFOkFMVEFCQkUiLCJpYXQiOjE3NzkyNjgwNTIsImV4cCI6MTc4MTg2MDA1Mn0.ZI8zgA1--K6nFzULnxCHxnm8m7zUPFEBUapa_Xaw_fU";
-    $merchant_login_id = "AltabaayShop1"; // اليوزر الجديد الخاص بالطباعة
+    $merchant_login_id = "AltabaayShop1"; 
     $document_size = "A6"; 
 
-    // توجيه الطلب للسيرفر الحقيقي (بدون كلمة devtest)
     $api_url = "https://prime-iq.com/myp/webapi/external/print-shipments/$merchant_login_id/$document_size";
 
     $ch = curl_init($api_url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($prime_ids)); // إرسال مصفوفة الأرقام
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($prime_ids)); 
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         "Content-Type: application/json",
         "Accept: */*",
@@ -50,13 +47,15 @@ if (isset($data['ids']) && is_array($data['ids'])) {
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    // Prime ترجع رابط URL كـ String محاط بعلامات تنصيص
     if ($http_code == 200 && !empty($response)) {
-        echo json_encode(['success' => true, 'pdf_url' => trim($response, '"')]);
+        $pdf_url = trim($response, '"');
+        // Redirect the browser directly to the Prime PDF
+        header("Location: " . $pdf_url);
+        exit;
     } else {
-        echo json_encode(['success' => false, 'error' => 'فشل استخراج البوليصة من Prime.', 'details' => $response]);
+        die("Error generating Waybill from Prime API. Details: " . htmlspecialchars($response));
     }
 } else {
-    echo json_encode(['success' => false, 'error' => 'بيانات مفقودة']);
+    die("Missing order IDs.");
 }
 ?>
