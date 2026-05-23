@@ -1207,7 +1207,7 @@ function saveClientEdit() {
 function processOrder() {
     const orderData = {
         clientName: document.getElementById('clientName').value.trim(),
-        cartonCount: document.getElementById('cartonCount').value,
+        cartonCount: document.getElementById('cartonCount').value || 1,
         bookletCount: document.getElementById('bookletCount') ? document.getElementById('bookletCount').value : 0,
         phoneNumber: document.getElementById('phoneNumber').value.trim(),
         phone2: document.getElementById('phone2').value.trim(),

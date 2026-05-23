@@ -37,15 +37,14 @@ if ($data) {
         $phoneNumber = htmlspecialchars(strip_tags($data['phoneNumber']), ENT_QUOTES, 'UTF-8');
         $provinceName = htmlspecialchars(strip_tags($data['provinceName']), ENT_QUOTES, 'UTF-8');
         $address = htmlspecialchars(strip_tags($data['address']), ENT_QUOTES, 'UTF-8');
-        $cartonCount = isset($data['cartonCount']) ? (int)$data['cartonCount'] : 1;
-        $bookletCount = isset($data['bookletCount']) ? (int)$data['bookletCount'] : 0;
+        $cartonCount = (isset($data['cartonCount']) && $data['cartonCount'] !== '') ? (int)$data['cartonCount'] : 1;
+        $bookletCount = (isset($data['bookletCount']) && $data['bookletCount'] !== '') ? (int)$data['bookletCount'] : 0;
         $amount = $data['amount'];
         $receiptNo = htmlspecialchars(strip_tags($data['receiptNo']), ENT_QUOTES, 'UTF-8');
         
-        // Format notes for Prime API
+        // STRICT FORMATTING REQUIRED BY USER
         $notes = "عدد الكراتين الكلي للمكتبة ( " . $cartonCount . " ) وعدد الملازم ( " . $bookletCount . " )";
 
-        // Only save original fields to DB to prevent SQL errors
         $stmt = $pdo->prepare("INSERT INTO orders (client_name, phone, province, address, carton_count, amount, receipt_no) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([$clientName, $phoneNumber, $provinceName, $address, $cartonCount, $amount, $receiptNo]);
         
@@ -99,7 +98,7 @@ if ($data) {
                 "haveReturnItems" => "N",
                 "locationDetails" => $address, // العنوان
                 "merchantLoginId" => $merchantLoginId,
-                "productInfo" => "ملازم الطابعي - " . $notes, // نوع البضاعة
+                "productInfo" => $notes,
                 "qty" => 1, // MUST BE STRICTLY 1 to avoid Internal Server Error
                 "receiptAmtIqd" => (int)$amount, // المبلغ
                 "receiverHp1" => $phoneNumber, // الهاتف
