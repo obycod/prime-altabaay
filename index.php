@@ -973,7 +973,7 @@ function resetForm() {
     if(document.getElementById('clientName')) {
         document.getElementById('clientName').value = '';
         document.getElementById('cartonCount').value = '';
-        document.getElementById('bookletCount').value = '';
+        if(document.getElementById('bookletCount')) document.getElementById('bookletCount').value = '';
         document.getElementById('phoneNumber').value = '';
         document.getElementById('phone2').value = '';
         document.getElementById('provinceName').value = '';
@@ -1205,11 +1205,11 @@ function processOrder() {
     const orderData = {
         clientName: document.getElementById('clientName').value.trim(),
         cartonCount: document.getElementById('cartonCount').value,
-        bookletCount: document.getElementById('bookletCount').value || 0,
+        bookletCount: document.getElementById('bookletCount') ? document.getElementById('bookletCount').value : 0,
         phoneNumber: document.getElementById('phoneNumber').value.trim(),
         phone2: document.getElementById('phone2').value.trim(),
         provinceName: document.getElementById('provinceName').value.trim(),
-        amount: document.getElementById('amount').value.replace(/,/g, ''), // تنظيف الفواصل قبل الإرسال للسيرفر
+        amount: document.getElementById('amount').value.replace(/,/g, ''), 
         receiptNo: document.getElementById('receiptNo').value.trim(),
         address: document.getElementById('address').value.trim()
     };
