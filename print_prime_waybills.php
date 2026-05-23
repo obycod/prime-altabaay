@@ -1,4 +1,5 @@
 <?php
+header('Content-Type: application/json; charset=utf-8');
 session_start();
 require 'db.php';
 
@@ -12,11 +13,14 @@ if (isset($data['ids']) && is_array($data['ids'])) {
     $ids = implode(',', array_map('intval', $data['ids']));
 
     // جلب أرقام التتبع (Prime Case IDs) من الطلبات المحددة
-    // ملاحظة: يجب أن يحتوي حقل tracking_no على الـ ID الرقمي الراجع من Prime
-    $stmt = $pdo->query("SELECT tracking_no FROM orders WHERE id IN ($ids) AND tracking_no IS NOT NULL AND tracking_no != ''");
+    $stmt = $pdo->query("SELECT tracking_no, carton_count FROM orders WHERE id IN ($ids) AND tracking_no IS NOT NULL AND tracking_no != ''");
     $prime_ids = [];
     while ($row = $stmt->fetch()) {
-        $prime_ids[] = (int)$row['tracking_no'];
+        $count = isset($row['carton_count']) ? (int)$row['carton_count'] : 1;
+        if ($count < 1) $count = 1;
+        for ($i = 0; $i < $count; $i++) {
+            $prime_ids[] = (int)$row['tracking_no'];
+        }
     }
 
     if(empty($prime_ids)){
