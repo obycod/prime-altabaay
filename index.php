@@ -417,7 +417,7 @@ $username = $_SESSION['username'];
                         إصدار طلب توصيل جديد
                     </h2>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="relative col-span-1 md:col-span-2 search-container">
                             <label class="block text-sm font-bold text-slate-700 mb-2">أسم المكتب <span class="text-red-500">*</span></label>
                             <input type="text" id="clientName" placeholder="بحث ذكي بالاسم أو الهاتف..." onkeyup="filterSmartSearch()" onfocus="filterSmartSearch()" autocomplete="off" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 transition outline-none shadow-sm">
@@ -429,10 +429,15 @@ $username = $_SESSION['username'];
                             <input type="number" id="cartonCount" min="1" placeholder="مثال: 4" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 transition outline-none text-center font-bold shadow-sm">
                         </div>
 
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">عدد الملازم <span class="text-slate-400">(اختياري)</span></label>
+                            <input type="number" id="bookletCount" min="0" placeholder="مثال: 120" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 transition outline-none text-center font-bold shadow-sm">
+                        </div>
+
                         <input type="hidden" id="phone2" value="">
                         <input type="hidden" id="clientType" value="">
 
-                        <div>
+                        <div class="col-span-1 md:col-span-2">
                             <label class="block text-sm font-bold text-slate-700 mb-2">رقم الهاتف <span class="text-red-500">*</span></label>
                             <input type="text" id="phoneNumber" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 transition outline-none shadow-sm" dir="ltr" style="text-align: right;">
                         </div>
@@ -450,12 +455,12 @@ $username = $_SESSION['username'];
                             <input type="text" id="amount" placeholder="0" oninput="formatNumberInput(this)" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 transition outline-none font-bold text-indigo-600 shadow-sm" dir="ltr" style="text-align:right">
                         </div>
 
-                        <div class="col-span-1 md:col-span-3">
+                        <div class="col-span-1 md:col-span-4">
                             <label class="block text-sm font-bold text-slate-700 mb-2">رقم الوصل (اختياري)</label>
                             <input type="text" id="receiptNo" placeholder="اتركه فارغاً للتوليد التلقائي..." class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 transition outline-none shadow-sm">
                         </div>
 
-                        <div class="col-span-1 md:col-span-3">
+                        <div class="col-span-1 md:col-span-4">
                             <label class="block text-sm font-bold text-slate-700 mb-2">العنوان التفصيلي <span class="text-red-500">*</span></label>
                             <input type="text" id="address" placeholder="اكتب العنوان بدقة..." class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 transition outline-none shadow-sm">
                         </div>
@@ -968,6 +973,7 @@ function resetForm() {
     if(document.getElementById('clientName')) {
         document.getElementById('clientName').value = '';
         document.getElementById('cartonCount').value = '';
+        document.getElementById('bookletCount').value = '';
         document.getElementById('phoneNumber').value = '';
         document.getElementById('phone2').value = '';
         document.getElementById('provinceName').value = '';
@@ -1199,6 +1205,7 @@ function processOrder() {
     const orderData = {
         clientName: document.getElementById('clientName').value.trim(),
         cartonCount: document.getElementById('cartonCount').value,
+        bookletCount: document.getElementById('bookletCount').value || 0,
         phoneNumber: document.getElementById('phoneNumber').value.trim(),
         phone2: document.getElementById('phone2').value.trim(),
         provinceName: document.getElementById('provinceName').value.trim(),
