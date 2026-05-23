@@ -39,20 +39,24 @@ if ($data) {
             // تجاهل الخطأ في حال عدم الدعم أو وجود الحقل
         }
 
+        $clientName = htmlspecialchars(strip_tags($data['clientName']), ENT_QUOTES, 'UTF-8');
+        $phoneNumber = htmlspecialchars(strip_tags($data['phoneNumber']), ENT_QUOTES, 'UTF-8');
+        $provinceName = htmlspecialchars(strip_tags($data['provinceName']), ENT_QUOTES, 'UTF-8');
+        $address = htmlspecialchars(strip_tags($data['address']), ENT_QUOTES, 'UTF-8');
+        $cartonCount = isset($data['cartonCount']) ? (int)$data['cartonCount'] : 1;
+        $bookletCount = isset($data['bookletCount']) ? (int)$data['bookletCount'] : 0;
+        $amount = $data['amount'];
+        $receiptNo = htmlspecialchars(strip_tags($data['receiptNo']), ENT_QUOTES, 'UTF-8');
+        
+        // Exact format requested by user
+        $notes = "عدد الكراتين الكلي للمكتبة ( " . $cartonCount . " ) وعدد الملازم ( " . $bookletCount . " )";
+
         // حفظ الطلب فقط في أرشيف الطلبات دون المساس بجدول العملاء
         $stmt = $pdo->prepare("INSERT INTO orders (client_name, phone, province, address, carton_count, booklet_count, amount, receipt_no) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([
-            htmlspecialchars(strip_tags($data['clientName']), ENT_QUOTES, 'UTF-8'),
-            htmlspecialchars(strip_tags($data['phoneNumber']), ENT_QUOTES, 'UTF-8'),
-            htmlspecialchars(strip_tags($data['provinceName']), ENT_QUOTES, 'UTF-8'),
-            htmlspecialchars(strip_tags($data['address']), ENT_QUOTES, 'UTF-8'),
-            $data['cartonCount'], 
-            isset($data['bookletCount']) ? (int)$data['bookletCount'] : 0,
-            $data['amount'], 
-            htmlspecialchars(strip_tags($data['receiptNo']), ENT_QUOTES, 'UTF-8')
-        ]);
+        $stmt->execute([$clientName, $phoneNumber, $provinceName, $address, $cartonCount, $bookletCount, $amount, $receiptNo]);
         
         $local_order_id = $pdo->lastInsertId();
+        $order_id = $local_order_id;
 
         // تسجيل الحركة
         $action_details = "قام بإصدار طلب توصيل جديد لمكتب: " . strip_tags($data['clientName']);
@@ -62,16 +66,6 @@ if ($data) {
         // ==========================================
         // بداية الربط مع API شركة Prime
         // ==========================================
-        $clientName = htmlspecialchars(strip_tags($data['clientName']), ENT_QUOTES, 'UTF-8');
-        $phoneNumber = htmlspecialchars(strip_tags($data['phoneNumber']), ENT_QUOTES, 'UTF-8');
-        $provinceName = htmlspecialchars(strip_tags($data['provinceName']), ENT_QUOTES, 'UTF-8');
-        $address = htmlspecialchars(strip_tags($data['address']), ENT_QUOTES, 'UTF-8');
-        $cartonCount = $data['cartonCount'];
-        $bookletCount = isset($data['bookletCount']) ? (int)$data['bookletCount'] : 0;
-        $amount = $data['amount'];
-        $receiptNo = htmlspecialchars(strip_tags($data['receiptNo']), ENT_QUOTES, 'UTF-8');
-        $notes = "عدد الكراتين الكلي للمكتبة ( " . $cartonCount . " ) وعدد الملازم ( " . $bookletCount . " )";
-        $order_id = $local_order_id;
 
         // 1. إعدادات حساب برايم الحقيقية (الـ Live)
         $prime_token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJJTlRFR1JBVEVEX1NZU1RFTV9DT0RFOkFMVEFCQkUiLCJpYXQiOjE3NzkyNjgwNTIsImV4cCI6MTc4MTg2MDA1Mn0.ZI8zgA1--K6nFzULnxCHxnm8m7zUPFEBUapa_Xaw_fU";
@@ -112,7 +106,7 @@ if ($data) {
                 "locationDetails" => $address, // العنوان
                 "merchantLoginId" => $merchantLoginId,
                 "productInfo" => "ملازم الطابعي - " . $notes, // نوع البضاعة
-                "qty" => 1, // عدد الكراتين
+                "qty" => 1, // MUST BE 1
                 "receiptAmtIqd" => (int)$amount, // المبلغ
                 "receiverHp1" => $phoneNumber, // الهاتف
                 "receiverName" => $clientName, // اسم المستلم

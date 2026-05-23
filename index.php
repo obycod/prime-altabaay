@@ -424,14 +424,17 @@ $username = $_SESSION['username'];
                             <div id="clientDropdown" class="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 hidden dropdown-list divide-y divide-slate-100"></div>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">عدد الكراتين <span class="text-red-500">*</span></label>
-                            <input type="number" id="cartonCount" min="1" placeholder="مثال: 4" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 transition outline-none text-center font-bold shadow-sm">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">عدد الملازم <span class="text-slate-400">(اختياري)</span></label>
-                            <input type="number" id="bookletCount" min="0" placeholder="مثال: 120" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 transition outline-none text-center font-bold shadow-sm">
+                        <div class="col-span-1 md:col-span-2">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">عدد الكراتين <span class="text-red-500">*</span></label>
+                                    <input type="number" id="cartonCount" min="1" placeholder="مثال: 4" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 transition outline-none text-center font-bold shadow-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">عدد الملازم <span class="text-slate-400">(اختياري)</span></label>
+                                    <input type="number" id="bookletCount" min="0" placeholder="مثال: 120" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 transition outline-none text-center font-bold shadow-sm">
+                                </div>
+                            </div>
                         </div>
 
                         <input type="hidden" id="phone2" value="">
