@@ -1218,6 +1218,7 @@ function processOrder() {
     .then(res => res.json()).then(data => {
         if(data.success) { 
             resetForm(); 
+            fetchOrdersFromServer();
             if (data.tracking_no) {
                 Swal.fire({icon: 'success', title: 'نجاح 🚀', text: 'تم حفظ الطلب وإرساله لشركة برايم بنجاح، رقم التتبع: ' + data.tracking_no, showConfirmButton: true, confirmButtonText: 'حسناً', confirmButtonColor: '#4f46e5'});
             } else {
@@ -1247,6 +1248,8 @@ function fetchOrdersFromServer() {
             document.getElementById('order-date-filter').value = new Date().toISOString().split('T')[0];
         }
         renderOrdersTable();
+        loadTrackingData();
+        loadHomeDashboard();
     });
 }
 
@@ -1630,40 +1633,29 @@ function renderFinancialsTable() {
     document.getElementById('card-total-net').innerText = formatNumStr(totalNet) + ' د.ع';
 }
 
-// === تتبع الشحنات (Mock Data مؤقتاً) ===
+// === تتبع الشحنات ===
 function loadTrackingData() {
-    // بيانات وهمية للاختبار لحين ربطها بقاعدة البيانات والـ API
-    const mockData = [
-        { local_id: '1042', tracking_no: 'PRM-883921', client: 'مكتبة الأمل', province: 'بغداد', phone: '07712345678', amount: 150000, status: 'واصلة' },
-        { local_id: '1043', tracking_no: 'PRM-883922', client: 'قرطاسية الطالب', province: 'البصرة', phone: '07811122233', amount: 320000, status: 'قيد التوصيل' },
-        { local_id: '1044', tracking_no: 'PRM-883923', client: 'مكتبة الفجر', province: 'اربيل', phone: '07501234567', amount: 75000, status: 'بانتظار المندوب' },
-        { local_id: '1045', tracking_no: 'PRM-883924', client: 'مكتبة النور', province: 'بابل', phone: '07809998877', amount: 210000, status: 'راجعة' }
-    ];
-
+    if (!currentOrdersList) return;
     let html = '';
     let counts = { progress: 0, delivered: 0, returned: 0, debt: 0 };
 
-    mockData.forEach(item => {
+    currentOrdersList.forEach(item => {
         let statusBadge = '';
-        if (item.status === 'واصلة') {
-            statusBadge = '<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">✅ سلمت بنجاح</span>';
-            counts.delivered++;
-        } else if (item.status === 'قيد التوصيل') {
-            statusBadge = '<span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold">🚚 قيد التوصيل</span>';
+        if (item.local_status === 'shipped') {
+            statusBadge = '<span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold">🚚 مسلمة لـ Prime</span>';
             counts.progress++;
-            counts.debt += item.amount;
-        } else if (item.status === 'راجعة') {
-            statusBadge = '<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold">❌ راجعة</span>';
-            counts.returned++;
+            counts.debt += parseFloat(item.amount || 0);
+        } else if (item.local_status === 'ready_for_pickup') {
+            statusBadge = '<span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-bold">📦 جاهز للبيك أب</span>';
+            counts.debt += parseFloat(item.amount || 0);
         } else {
-            statusBadge = '<span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-bold">⏳ بانتظار المندوب</span>';
-            counts.debt += item.amount;
+            statusBadge = '<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold">🖨️ بانتظار الطباعة</span>';
         }
 
         html += `<tr class="hover:bg-slate-50">
-                    <td class="px-4 py-3 font-mono text-slate-500 font-bold">#${item.local_id}</td>
-                    <td class="px-4 py-3 font-mono text-indigo-600 font-bold">${item.tracking_no}</td>
-                    <td class="px-4 py-3 font-bold text-slate-700">${item.client}</td>
+                    <td class="px-4 py-3 font-mono text-slate-500 font-bold">#${item.id}</td>
+                    <td class="px-4 py-3 font-mono text-indigo-600 font-bold">${item.tracking_no || '-'}</td>
+                    <td class="px-4 py-3 font-bold text-slate-700">${item.client_name}</td>
                     <td class="px-4 py-3 text-slate-600">${item.province}</td>
                     <td class="px-4 py-3 text-slate-600 font-mono text-sm" dir="ltr"><div class="text-right">${item.phone}</div></td>
                     <td class="px-4 py-3 font-bold text-slate-800">${formatNumStr(item.amount)} د.ع</td>
@@ -1671,26 +1663,36 @@ function loadTrackingData() {
                  </tr>`;
     });
 
-    document.getElementById('trackingContainer').innerHTML = html;
-    document.getElementById('track-card-progress').innerText = counts.progress;
-    document.getElementById('track-card-delivered').innerText = counts.delivered;
-    document.getElementById('track-card-returned').innerText = counts.returned;
-    document.getElementById('track-card-debt').innerText = formatNumStr(counts.debt) + ' د.ع';
+    const trackingContainer = document.getElementById('trackingContainer');
+    if(trackingContainer) trackingContainer.innerHTML = html;
+
+    if(document.getElementById('track-card-progress')) document.getElementById('track-card-progress').innerText = counts.progress;
+    if(document.getElementById('track-card-delivered')) document.getElementById('track-card-delivered').innerText = '--'; 
+    if(document.getElementById('track-card-returned')) document.getElementById('track-card-returned').innerText = '--'; 
+    if(document.getElementById('track-card-debt')) document.getElementById('track-card-debt').innerText = formatNumStr(counts.debt) + ' د.ع';
 }
 
 // === الرئيسية (Home Dashboard) ===
 function loadHomeDashboard() {
-    // بيانات وهمية تمهيداً لربطها بالـ API الحقيقي
-    if(document.getElementById('dash-wallet-balance')) {
-        document.getElementById('dash-wallet-balance').innerText = '1,422,000';
-        document.getElementById('dash-pickup-count').innerText = '12';
-        document.getElementById('dash-delivered').innerText = '84';
-        document.getElementById('dash-out-for-delivery').innerText = '15';
-        document.getElementById('dash-processing').innerText = '42';
-        document.getElementById('dash-returned').innerText = '3';
-        document.getElementById('dash-action-needed').innerText = '5';
-        document.getElementById('dash-followup').innerText = '8';
-    }
+    if (!currentOrdersList) return;
+    let counts = { progress: 0, ready: 0, actionNeeded: 0 };
+
+    currentOrdersList.forEach(item => {
+        if (item.local_status === 'shipped') counts.progress++;
+        else if (item.local_status === 'ready_for_pickup') counts.ready++;
+        else counts.actionNeeded++;
+    });
+
+    if(document.getElementById('dash-pickup-count')) document.getElementById('dash-pickup-count').innerText = counts.ready + ' بيك أب';
+    if(document.getElementById('dash-out-for-delivery')) document.getElementById('dash-out-for-delivery').innerText = counts.progress;
+    if(document.getElementById('dash-action-needed')) document.getElementById('dash-action-needed').innerText = counts.actionNeeded;
+    
+    // Reset other mock placeholders until Prime API Sync is implemented
+    if(document.getElementById('dash-wallet-balance')) document.getElementById('dash-wallet-balance').innerText = '0';
+    if(document.getElementById('dash-delivered')) document.getElementById('dash-delivered').innerText = '0';
+    if(document.getElementById('dash-processing')) document.getElementById('dash-processing').innerText = '0';
+    if(document.getElementById('dash-returned')) document.getElementById('dash-returned').innerText = '0';
+    if(document.getElementById('dash-followup')) document.getElementById('dash-followup').innerText = '0';
 }
 
 // === مزامنة بيانات Prime ===
