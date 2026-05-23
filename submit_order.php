@@ -33,14 +33,21 @@ if ($data) {
             // الحقل موجود مسبقاً، لا تفعل شيئاً
         }
 
+        try {
+            $pdo->query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS booklet_count INT DEFAULT 0 AFTER carton_count");
+        } catch (PDOException $e) {
+            // تجاهل الخطأ في حال عدم الدعم أو وجود الحقل
+        }
+
         // حفظ الطلب فقط في أرشيف الطلبات دون المساس بجدول العملاء
-        $stmt = $pdo->prepare("INSERT INTO orders (client_name, phone, province, address, carton_count, amount, receipt_no) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO orders (client_name, phone, province, address, carton_count, booklet_count, amount, receipt_no) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             htmlspecialchars(strip_tags($data['clientName']), ENT_QUOTES, 'UTF-8'),
             htmlspecialchars(strip_tags($data['phoneNumber']), ENT_QUOTES, 'UTF-8'),
             htmlspecialchars(strip_tags($data['provinceName']), ENT_QUOTES, 'UTF-8'),
             htmlspecialchars(strip_tags($data['address']), ENT_QUOTES, 'UTF-8'),
             $data['cartonCount'], 
+            isset($data['bookletCount']) ? (int)$data['bookletCount'] : 0,
             $data['amount'], 
             htmlspecialchars(strip_tags($data['receiptNo']), ENT_QUOTES, 'UTF-8')
         ]);
@@ -60,9 +67,10 @@ if ($data) {
         $provinceName = htmlspecialchars(strip_tags($data['provinceName']), ENT_QUOTES, 'UTF-8');
         $address = htmlspecialchars(strip_tags($data['address']), ENT_QUOTES, 'UTF-8');
         $cartonCount = $data['cartonCount'];
+        $bookletCount = isset($data['bookletCount']) ? (int)$data['bookletCount'] : 0;
         $amount = $data['amount'];
         $receiptNo = htmlspecialchars(strip_tags($data['receiptNo']), ENT_QUOTES, 'UTF-8');
-        $notes = "عدد الكراتين الكلي للمكتبة ( $cartonCount )";
+        $notes = "عدد الكراتين الكلي للمكتبة ( " . $cartonCount . " ) وعدد الملازم ( " . $bookletCount . " )";
         $order_id = $local_order_id;
 
         // 1. إعدادات حساب برايم الحقيقية (الـ Live)
