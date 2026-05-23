@@ -24,12 +24,13 @@ if (isset($data['ids']) && is_array($data['ids'])) {
         exit;
     }
 
-    // إعدادات API شركة Prime (تُحدث لاحقاً عند استلام البيانات)
-    $prime_token = "YOUR_TOKEN_HERE";
-    $merchant_login_id = "YOUR_MERCHANT_ID_HERE"; // مثال: 0784555544ABCSS
-    $document_size = "A6"; // حجم الطباعة (A6 للطابعات الحرارية واللواصق)
+    // 1. إعدادات API شركة Prime الحقيقية
+    $prime_token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJJTlRFR1JBVEVEX1NZU1RFTV9DT0RFOkFMVEFCQkUiLCJpYXQiOjE3NzkyNjgwNTIsImV4cCI6MTc4MTg2MDA1Mn0.ZI8zgA1--K6nFzULnxCHxnm8m7zUPFEBUapa_Xaw_fU"; // ⚠️ نفس التوكن المستخدم في الملف السابق
+    $merchant_login_id = "AltabaayShop1"; // اليوزر الجديد الخاص بالطباعة
+    $document_size = "A6"; 
 
-    $api_url = "https://devtest.prime-iq.com/myp/webapi/external/print-shipments/$merchant_login_id/$document_size";
+    // توجيه الطلب للسيرفر الحقيقي (بدون كلمة devtest)
+    $api_url = "https://prime-iq.com/myp/webapi/external/print-shipments/$merchant_login_id/$document_size";
 
     $ch = curl_init($api_url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -45,7 +46,7 @@ if (isset($data['ids']) && is_array($data['ids'])) {
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    // التحقق من الاستجابة (Prime ترجع رابط URL كـ String)
+    // Prime ترجع رابط URL كـ String محاط بعلامات تنصيص
     if ($http_code == 200 && !empty($response)) {
         echo json_encode(['success' => true, 'pdf_url' => trim($response, '"')]);
     } else {

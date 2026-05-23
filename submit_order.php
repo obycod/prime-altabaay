@@ -65,10 +65,10 @@ if ($data) {
         $notes = "عدد الكراتين الكلي للمكتبة ( $cartonCount )";
         $order_id = $local_order_id;
 
-        // 1. إعدادات حساب برايم (يجب تعبئتها لاحقاً)
-        $prime_token = "ضع_التوكن_هنا"; // Bearer Token
-        $merchantLoginId = "ضع_يوزر_التاجر_هنا"; 
-        $senderId = 12345; // رقم المتجر الخاص بك (Integer)
+        // 1. إعدادات حساب برايم الحقيقية (الـ Live)
+        $prime_token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJJTlRFR1JBVEVEX1NZU1RFTV9DT0RFOkFMVEFCQkUiLCJpYXQiOjE3NzkyNjgwNTIsImV4cCI6MTc4MTg2MDA1Mn0.ZI8zgA1--K6nFzULnxCHxnm8m7zUPFEBUapa_Xaw_fU"; // ⚠️ لا تنسَ لصق التوكن الطويل هنا
+        $merchantLoginId = "AltabaayShop1"; // اليوزر الخاص بالتاجر الذي انشأناه
+        $senderId = 134673; // رقم المتجر الذي تولد لدينا
         
         // 2. مصفوفة تحويل أسماء المحافظات إلى شفرات برايم (يمكنك تعديلها لاحقاً)
         $state_codes = [
@@ -100,7 +100,7 @@ if ($data) {
             [
                 "custReceiptNoOri" => $receiptNo ?: $order_id, // رقم الوصل
                 "district" => "0", 
-                "haveReturnItems" => "Y",
+                "haveReturnItems" => "N",
                 "locationDetails" => $address, // العنوان
                 "merchantLoginId" => $merchantLoginId,
                 "productInfo" => "ملازم الطابعي - " . $notes, // نوع البضاعة
@@ -114,8 +114,8 @@ if ($data) {
             ]
         ];
         
-        // 4. إرسال الطلب عبر cURL
-        $ch = curl_init('https://devtest.prime-iq.com/myp/webapi/external/create-shipments');
+        // 4. إرسال الطلب عبر cURL للسيرفر الحقيقي
+        $ch = curl_init('https://prime-iq.com/myp/webapi/external/create-shipments');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($prime_payload));
@@ -129,14 +129,13 @@ if ($data) {
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         
-        // 5. معالجة الرد وتحديث رقم التتبع في قاعدة البيانات
+        // 5. استخراج رقم الشحنة (Shipment ID) وحفظه
         $prime_data = json_decode($prime_response, true);
         $tracking_no = null;
         
-        // ملاحظة: برايم ترجع ID الشحنة، سنقوم بتحديث الطلب بناءً عليه
-        if ($http_code == 200 && !empty($prime_data)) {
-            // استخراج رقم الشحنة الأول من المصفوفة الراجعة (قد يختلف الهيكل قليلاً حسب الرد الفعلي)
-            $tracking_no = is_array($prime_data) ? json_encode($prime_data) : $prime_response; // مؤقتاً لحفظ الرد كاملاً والتأكد منه
+        // الرد الناجح يأتي بصيغة {"42739333": 42739333}، الدالة reset تجلب أول قيمة
+        if ($http_code == 200 && is_array($prime_data) && !empty($prime_data)) {
+            $tracking_no = reset($prime_data); 
             
             // تحديث حقل tracking_no في الطلب
             $stmt_update = $pdo->prepare("UPDATE orders SET tracking_no = ? WHERE id = ?");
